@@ -20,7 +20,7 @@ const login = async (req, res) => {
         const user = await User.findOne({ email: email.toLowerCase() });
         
         if (!user) {
-            console.log('❌ User not found:', email);
+            console.log('User not found:', email);
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
@@ -31,7 +31,7 @@ const login = async (req, res) => {
         const isPasswordMatch = await user.comparePassword(password);
         
         if (!isPasswordMatch) {
-            console.log('❌ Invalid password for:', email);
+            console.log(' Invalid password for:', email);
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
@@ -41,7 +41,7 @@ const login = async (req, res) => {
         // Generate token
         const token = generateToken(user._id);
 
-        console.log('✅ Login successful:', email);
+        console.log(' Login successful:', email);
 
         // Send response
         res.json({
