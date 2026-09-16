@@ -157,7 +157,7 @@ projectSchema.virtual('budgetVariance').get(function() {
 });
 
 // Pre-save middleware
-projectSchema.pre('save', function(next) {
+projectSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Generate project code if not provided
@@ -183,13 +183,10 @@ projectSchema.pre('save', function(next) {
     if (this.progress === 100 && this.status !== 'completed') {
         this.status = 'completed';
     }
-    
-    next();
 });
 
 // Indexes for better performance
 projectSchema.index({ name: 1 });
-projectSchema.index({ code: 1 });
 projectSchema.index({ status: 1 });
 projectSchema.index({ department: 1 });
 projectSchema.index({ startDate: -1 });

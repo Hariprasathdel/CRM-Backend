@@ -110,9 +110,8 @@ employeeSchema.virtual('yearsOfService').get(function() {
 });
 
 // Pre-save middleware
-employeeSchema.pre('save', function(next) {
+employeeSchema.pre('save', function() {
     this.updatedAt = Date.now();
-    next();
 });
 
 // Pre-remove middleware - Check for dependencies
@@ -147,7 +146,6 @@ employeeSchema.pre('remove', async function(next) {
 
 // Indexes for better performance
 employeeSchema.index({ name: 'text' });
-employeeSchema.index({ email: 1 });
 employeeSchema.index({ department: 1 });
 employeeSchema.index({ status: 1 });
 employeeSchema.index({ joinDate: -1 });

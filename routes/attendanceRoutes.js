@@ -18,10 +18,35 @@ const { validateRequest } = require('../utils/validators');
 // @access  Private
 router.get('/', protect, getAttendance);
 
-// @route   GET /api/attendance/daily-stats
+// @route   GET /api/attendance/daily-stats or /api/attendance/statistics
 // @desc    Get daily attendance statistics
 // @access  Private
 router.get('/daily-stats', protect, getDailyStats);
+router.get('/statistics', protect, getDailyStats);
+
+// @route   GET /api/attendance/today
+// @desc    Get today's attendance records
+// @access  Private
+router.get('/today', protect, async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const AttendanceModel = require('../models/Attendance');
+        const records = await AttendanceModel.find({
+            date: { $gte: today, $lt: tomorrow }
+        }).populate('employeeId', 'name email department profileImage');
+
+        res.json({
+            success: true,
+            data: records
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
 
 // @route   GET /api/attendance/monthly-report
 // @desc    Get monthly attendance report

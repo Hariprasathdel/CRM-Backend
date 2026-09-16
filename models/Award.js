@@ -69,9 +69,8 @@ awardSchema.virtual('employee', {
 });
 
 // Pre-save middleware
-awardSchema.pre('save', function(next) {
+awardSchema.pre('save', function() {
     this.updatedAt = Date.now();
-    next();
 });
 
 // Indexes for better performance

@@ -18,10 +18,11 @@ const { validateRequest } = require('../utils/validators');
 // @access  Private
 router.get('/', protect, getPayslips);
 
-// @route   GET /api/payslips/stats
+// @route   GET /api/payslips/stats or /api/payslips/statistics
 // @desc    Get payslip statistics
 // @access  Private
 router.get('/stats', protect, getPayslipStats);
+router.get('/statistics', protect, getPayslipStats);
 
 // @route   GET /api/payslips/:id
 // @desc    Get payslip by ID

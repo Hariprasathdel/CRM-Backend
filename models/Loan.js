@@ -118,7 +118,7 @@ loanSchema.virtual('totalRepayment').get(function() {
 });
 
 // Pre-save middleware
-loanSchema.pre('save', function(next) {
+loanSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Calculate monthly installment if not provided
@@ -152,8 +152,6 @@ loanSchema.pre('save', function(next) {
     if (this.isModified('status') && this.status === 'active') {
         this.approvedAt = new Date();
     }
-    
-    next();
 });
 
 // Indexes for better performance

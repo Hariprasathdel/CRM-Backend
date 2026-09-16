@@ -76,7 +76,7 @@ attendanceSchema.virtual('employeeName', {
 });
 
 // Pre-save middleware
-attendanceSchema.pre('save', function(next) {
+attendanceSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Calculate work hours if checkIn and checkOut are provided
@@ -92,8 +92,6 @@ attendanceSchema.pre('save', function(next) {
             this.overtime = Math.round((this.workHours - 8) * 10) / 10;
         }
     }
-    
-    next();
 });
 
 // Compound index for unique attendance per day per employee

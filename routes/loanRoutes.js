@@ -17,10 +17,11 @@ const { validateRequest } = require('../utils/validators');
 // @access  Private
 router.get('/', protect, getLoans);
 
-// @route   GET /api/loans/stats
+// @route   GET /api/loans/stats or /api/loans/statistics
 // @desc    Get loan statistics
 // @access  Private
 router.get('/stats', protect, getLoanStats);
+router.get('/statistics', protect, getLoanStats);
 
 // @route   GET /api/loans/:id
 // @desc    Get loan by ID

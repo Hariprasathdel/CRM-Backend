@@ -82,7 +82,7 @@ departmentSchema.virtual('employees', {
 });
 
 // Pre-save middleware
-departmentSchema.pre('save', function(next) {
+departmentSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Generate code from name if not provided
@@ -92,8 +92,6 @@ departmentSchema.pre('save', function(next) {
             .toUpperCase()
             .substring(0, 5);
     }
-    
-    next();
 });
 
 // Pre-remove middleware
@@ -112,8 +110,6 @@ departmentSchema.pre('remove', async function(next) {
 });
 
 // Indexes for better performance
-departmentSchema.index({ name: 1 });
-departmentSchema.index({ code: 1 });
 departmentSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Department', departmentSchema);

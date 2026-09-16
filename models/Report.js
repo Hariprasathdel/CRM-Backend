@@ -127,15 +127,13 @@ reportSchema.virtual('sizeHuman').get(function() {
 });
 
 // Pre-save middleware
-reportSchema.pre('save', function(next) {
+reportSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Update status if file is generated
     if (this.filePath && this.status === 'draft') {
         this.status = 'generated';
     }
-    
-    next();
 });
 
 // Pre-remove middleware

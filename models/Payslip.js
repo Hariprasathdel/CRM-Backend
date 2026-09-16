@@ -161,7 +161,7 @@ const payslipSchema = new mongoose.Schema({
 });
 
 // Generate payslip number before saving
-payslipSchema.pre('save', function(next) {
+payslipSchema.pre('save', function() {
     this.updatedAt = Date.now();
     if (!this.payslipNumber) {
         const year = this.payPeriod.year.toString().slice(-2);
@@ -169,12 +169,10 @@ payslipSchema.pre('save', function(next) {
         const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
         this.payslipNumber = `PS-${year}${month}-${random}`;
     }
-    next();
 });
 
 // Indexes
 payslipSchema.index({ employeeId: 1 });
-payslipSchema.index({ payslipNumber: 1 });
 payslipSchema.index({ 'payPeriod.month': 1, 'payPeriod.year': 1 });
 payslipSchema.index({ status: 1 });
 

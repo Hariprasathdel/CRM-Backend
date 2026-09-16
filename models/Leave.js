@@ -87,7 +87,7 @@ leaveSchema.virtual('durationInDays').get(function() {
 });
 
 // Pre-save middleware
-leaveSchema.pre('save', function(next) {
+leaveSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Calculate days count
@@ -100,8 +100,6 @@ leaveSchema.pre('save', function(next) {
     if (this.isModified('status') && this.status === 'approved') {
         this.approvedAt = new Date();
     }
-    
-    next();
 });
 
 // Pre-remove middleware

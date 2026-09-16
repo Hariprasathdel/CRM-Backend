@@ -149,15 +149,13 @@ recruitmentSchema.virtual('applicationRate').get(function() {
 });
 
 // Pre-save middleware
-recruitmentSchema.pre('save', function(next) {
+recruitmentSchema.pre('save', function() {
     this.updatedAt = Date.now();
     
     // Auto-close if closing date is past
     if (this.closingDate && new Date() > this.closingDate && this.status === 'open') {
         this.status = 'closed';
     }
-    
-    next();
 });
 
 // Indexes for better performance

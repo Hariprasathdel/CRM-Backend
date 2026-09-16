@@ -19,10 +19,11 @@ const { validateRequest } = require('../utils/validators');
 // @access  Private
 router.get('/', protect, getLeaves);
 
-// @route   GET /api/leaves/stats
+// @route   GET /api/leaves/stats or /api/leaves/statistics
 // @desc    Get leave statistics
 // @access  Private
 router.get('/stats', protect, getLeaveStats);
+router.get('/statistics', protect, getLeaveStats);
 
 // @route   GET /api/leaves/:id
 // @desc    Get leave request by ID
