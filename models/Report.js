@@ -5,11 +5,16 @@ const reportSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide report title'],
         trim: true,
-        maxlength: [100, 'Report title cannot be more than 100 characters']
+        maxlength: [200, 'Report title cannot be more than 200 characters']
+    },
+    description: {
+        type: String,
+        trim: true,
+        default: ''
     },
     type: {
         type: String,
-        enum: ['attendance', 'employee', 'leave', 'project', 'financial', 'custom'],
+        enum: ['attendance', 'employee', 'leave', 'project', 'financial', 'custom', 'performance', 'department', 'recruitment', 'payroll', 'Attendance', 'Performance', 'Leave', 'Employee', 'Department', 'Financial', 'Project'],
         required: [true, 'Please provide report type']
     },
     data: {
@@ -24,11 +29,11 @@ const reportSchema = new mongoose.Schema({
     dateRange: {
         start: {
             type: Date,
-            required: true
+            default: Date.now
         },
         end: {
             type: Date,
-            required: true
+            default: Date.now
         }
     },
     filters: {
@@ -37,8 +42,8 @@ const reportSchema = new mongoose.Schema({
     },
     format: {
         type: String,
-        enum: ['json', 'pdf', 'excel', 'csv'],
-        default: 'json'
+        enum: ['json', 'pdf', 'excel', 'csv', 'word', 'JSON', 'PDF', 'Excel', 'CSV', 'Word'],
+        default: 'PDF'
     },
     filePath: {
         type: String,
@@ -46,7 +51,12 @@ const reportSchema = new mongoose.Schema({
     },
     fileSize: {
         type: Number,
-        min: 0
+        min: 0,
+        default: 1024
+    },
+    size: {
+        type: String,
+        default: '0.8 MB'
     },
     views: {
         type: Number,
@@ -82,8 +92,8 @@ const reportSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['draft', 'generated', 'processing', 'failed'],
-        default: 'draft'
+        enum: ['draft', 'generated', 'processing', 'failed', 'Completed', 'Processing', 'Failed'],
+        default: 'Completed'
     },
     error: {
         type: String,
@@ -111,6 +121,16 @@ const reportSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
+// Virtual for report name
+reportSchema.virtual('name').get(function() {
+    return this.title;
+});
+
+// Virtual for report generatedDate
+reportSchema.virtual('generatedDate').get(function() {
+    return this.createdAt;
+});
+
 // Virtual for report age
 reportSchema.virtual('age').get(function() {
     if (!this.createdAt) return 0;
@@ -120,6 +140,7 @@ reportSchema.virtual('age').get(function() {
 
 // Virtual for report size in human readable format
 reportSchema.virtual('sizeHuman').get(function() {
+    if (this.size) return this.size;
     if (!this.fileSize) return '0 B';
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(this.fileSize) / Math.log(1024));

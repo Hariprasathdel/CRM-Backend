@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
 const {
     getReports,
     getReportById,
+    getReportStats,
+    generateReport,
     createReport,
     updateReport,
     deleteReport,
+    downloadReport,
     generateAttendanceReport,
     generateEmployeeReport,
     generateLeaveReport,
@@ -14,139 +16,79 @@ const {
     generateFinancialReport
 } = require('../controllers/reportController');
 const { protect, authorize } = require('../middleware/auth');
-const { validateRequest } = require('../utils/validators');
+
+// ==================== STATS & NON-PARAMETRIC ROUTES FIRST ====================
 
 // @route   GET /api/reports
-// @desc    Get all reports
+// @desc    Get all reports with pagination/search/type filters
 // @access  Private
 router.get('/', protect, getReports);
+
+// @route   GET /api/reports/statistics and /api/reports/stats
+// @desc    Get report summary counts and distributions
+// @access  Private
+router.get('/statistics', protect, getReportStats);
+router.get('/stats', protect, getReportStats);
+
+// @route   POST /api/reports/generate
+// @desc    Generate report from live MongoDB data
+// @access  Private
+router.post('/generate', protect, generateReport);
+
+// @route   POST /api/reports
+// @desc    Create manual or generated report
+// @access  Private
+router.post('/', protect, generateReport);
+
+// ==================== SPECIFIC GENERATION ENDPOINTS ====================
+router.get('/generate/attendance', protect, generateAttendanceReport);
+router.get('/generate/employee', protect, generateEmployeeReport);
+router.get('/generate/leave', protect, generateLeaveReport);
+router.get('/generate/project', protect, generateProjectReport);
+router.get('/generate/financial', protect, generateFinancialReport);
+
+// Templates & Scheduled mocks if requested by client
+router.get('/templates', protect, (req, res) => {
+    res.json({
+        success: true,
+        data: [
+            { id: 'attendance', name: 'Monthly Attendance Summary', format: 'PDF' },
+            { id: 'performance', name: 'Department Performance Report', format: 'Excel' },
+            { id: 'leave', name: 'Leave & Absence Trends', format: 'PDF' },
+            { id: 'project', name: 'Project Milestone Status', format: 'PDF' },
+            { id: 'financial', name: 'Salary & Loan Allocation', format: 'Excel' }
+        ]
+    });
+});
+
+router.get('/scheduled', protect, (req, res) => {
+    res.json({ success: true, data: [] });
+});
+
+router.post('/scheduled', protect, (req, res) => {
+    res.status(201).json({ success: true, message: 'Scheduled report saved', data: req.body });
+});
+
+// ==================== PARAMETERIZED ROUTES (ID) ====================
+
+// @route   GET /api/reports/:id/download
+// @desc    Download report as CSV or JSON
+// @access  Private
+router.get('/:id/download', protect, downloadReport);
 
 // @route   GET /api/reports/:id
 // @desc    Get report by ID
 // @access  Private
 router.get('/:id', protect, getReportById);
 
-// @route   POST /api/reports
-// @desc    Create report
-// @access  Private
-router.post(
-    '/',
-    protect,
-    [
-        body('title')
-            .notEmpty().withMessage('Report title is required')
-            .isLength({ min: 3, max: 100 }).withMessage('Title must be between 3 and 100 characters')
-            .trim(),
-        body('type')
-            .notEmpty().withMessage('Report type is required')
-            .isIn(['attendance', 'employee', 'leave', 'project', 'financial', 'custom'])
-            .withMessage('Invalid report type'),
-        body('dateRange.start')
-            .notEmpty().withMessage('Start date is required')
-            .isISO8601().withMessage('Invalid start date'),
-        body('dateRange.end')
-            .notEmpty().withMessage('End date is required')
-            .isISO8601().withMessage('Invalid end date')
-            .custom((value, { req }) => {
-                if (new Date(value) < new Date(req.body.dateRange.start)) {
-                    throw new Error('End date must be after start date');
-                }
-                return true;
-            }),
-        body('data')
-            .notEmpty().withMessage('Report data is required')
-    ],
-    validateRequest,
-    createReport
-);
-
 // @route   PUT /api/reports/:id
 // @desc    Update report
 // @access  Private
-router.put(
-    '/:id',
-    protect,
-    [
-        body('title')
-            .optional()
-            .isLength({ min: 3, max: 100 }).withMessage('Title must be between 3 and 100 characters')
-            .trim(),
-        body('type')
-            .optional()
-            .isIn(['attendance', 'employee', 'leave', 'project', 'financial', 'custom'])
-            .withMessage('Invalid report type'),
-        body('dateRange.start')
-            .optional()
-            .isISO8601().withMessage('Invalid start date'),
-        body('dateRange.end')
-            .optional()
-            .isISO8601().withMessage('Invalid end date')
-            .custom((value, { req }) => {
-                if (req.body.dateRange?.start && new Date(value) < new Date(req.body.dateRange.start)) {
-                    throw new Error('End date must be after start date');
-                }
-                return true;
-            })
-    ],
-    validateRequest,
-    updateReport
-);
+router.put('/:id', protect, updateReport);
 
 // @route   DELETE /api/reports/:id
 // @desc    Delete report
 // @access  Private (Admin only)
-router.delete(
-    '/:id',
-    protect,
-    authorize('admin', 'super_admin'),
-    deleteReport
-);
-
-// ==================== REPORT GENERATION ENDPOINTS ====================
-
-// @route   GET /api/reports/generate/attendance
-// @desc    Generate attendance report
-// @access  Private
-router.get(
-    '/generate/attendance',
-    protect,
-    generateAttendanceReport
-);
-
-// @route   GET /api/reports/generate/employee
-// @desc    Generate employee report
-// @access  Private
-router.get(
-    '/generate/employee',
-    protect,
-    generateEmployeeReport
-);
-
-// @route   GET /api/reports/generate/leave
-// @desc    Generate leave report
-// @access  Private
-router.get(
-    '/generate/leave',
-    protect,
-    generateLeaveReport
-);
-
-// @route   GET /api/reports/generate/project
-// @desc    Generate project report
-// @access  Private
-router.get(
-    '/generate/project',
-    protect,
-    generateProjectReport
-);
-
-// @route   GET /api/reports/generate/financial
-// @desc    Generate financial report
-// @access  Private
-router.get(
-    '/generate/financial',
-    protect,
-    generateFinancialReport
-);
+router.delete('/:id', protect, authorize('admin', 'super_admin'), deleteReport);
 
 module.exports = router;

@@ -12,6 +12,7 @@ const Award = require('../models/Award');
 const Loan = require('../models/Loan');
 const Payslip = require('../models/Payslip');
 const Recruitment = require('../models/Recruitment');
+const Report = require('../models/Report');
 
 const seedData = async () => {
     try {
@@ -500,6 +501,113 @@ const seedData = async () => {
 
         await Recruitment.insertMany(recruitmentsData);
         console.log(`   ✅ Seeded ${recruitmentsData.length} recruitment postings`);
+
+        // 11. Seed Reports
+        console.log('📊 Seeding Reports...');
+        await Report.deleteMany({});
+        const reportsData = [
+            {
+                title: 'Employee Attendance Summary',
+                description: 'Comprehensive monthly attendance metrics, check-in averages, and absence rates across all departments.',
+                type: 'attendance',
+                format: 'PDF',
+                size: '1.2 MB',
+                status: 'Completed',
+                generatedBy: adminUser._id,
+                dateRange: {
+                    start: new Date(2026, 0, 1),
+                    end: new Date(2026, 0, 31)
+                },
+                data: {
+                    period: 'January 2026',
+                    totalEmployees: 8,
+                    averageAttendanceRate: '94%',
+                    presents: 168,
+                    absents: 8,
+                    leaves: 4
+                }
+            },
+            {
+                title: 'Department Performance Report',
+                description: 'Operational efficiency, target completion, and performance metrics across departments.',
+                type: 'performance',
+                format: 'Excel',
+                size: '2.5 MB',
+                status: 'Completed',
+                generatedBy: adminUser._id,
+                dateRange: {
+                    start: new Date(2025, 9, 1),
+                    end: new Date(2025, 11, 31)
+                },
+                data: {
+                    quarter: 'Q4 2025',
+                    topDepartment: 'Software Development',
+                    productivityScore: 92,
+                    completedGoals: 18,
+                    totalGoals: 20
+                }
+            },
+            {
+                title: 'Leave Analysis Report',
+                description: 'Employee leave patterns, seasonal absence trends, and balance utilization breakdown.',
+                type: 'leave',
+                format: 'PDF',
+                size: '0.8 MB',
+                status: 'Completed',
+                generatedBy: adminUser._id,
+                dateRange: {
+                    start: new Date(2026, 0, 1),
+                    end: new Date(2026, 0, 31)
+                },
+                data: {
+                    annualLeavesTaken: 12,
+                    sickLeavesTaken: 5,
+                    casualLeavesTaken: 3,
+                    approvalRate: '90%'
+                }
+            },
+            {
+                title: 'Project Progress Report',
+                description: 'Milestone delivery status, completion tracking, sprint velocities, and budget consumption.',
+                type: 'project',
+                format: 'PDF',
+                size: '3.1 MB',
+                status: 'Completed',
+                generatedBy: adminUser._id,
+                dateRange: {
+                    start: new Date(2025, 6, 1),
+                    end: new Date(2026, 0, 31)
+                },
+                data: {
+                    activeProjects: 3,
+                    completedMilestones: 14,
+                    onScheduleRate: '88%',
+                    totalBudgetAllocated: '$135,000'
+                }
+            },
+            {
+                title: 'Financial & Loan Allocation Report',
+                description: 'Employee loan disbursements, repayment schedules, interest accruals, and departmental budgets.',
+                type: 'financial',
+                format: 'Excel',
+                size: '1.8 MB',
+                status: 'Completed',
+                generatedBy: adminUser._id,
+                dateRange: {
+                    start: new Date(2025, 0, 1),
+                    end: new Date(2025, 11, 31)
+                },
+                data: {
+                    totalDisbursed: '$55,000',
+                    totalRecovered: '$23,400',
+                    activeBorrowers: 2,
+                    defaultRate: '0%'
+                }
+            }
+        ];
+
+        await Report.insertMany(reportsData);
+        console.log(`   ✅ Seeded ${reportsData.length} reports`);
 
         console.log('\n🎉 ALL DATABASE SEEDING COMPLETED SUCCESSFULLY!');
         console.log('----------------------------------------------------');

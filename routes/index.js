@@ -37,9 +37,25 @@ router.use('/dashboard', dashboardRoutes);
 
 // Health check route
 router.get('/health', (req, res) => {
+    const mongoose = require('mongoose');
+    const dbState = mongoose.connection.readyState;
+    const dbStatusMap = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting'
+    };
+
     res.json({
         success: true,
+        status: dbState === 1 ? 'healthy' : 'degraded',
         message: 'Server is running',
+        database: {
+            status: dbStatusMap[dbState] || 'unknown',
+            readyState: dbState,
+            host: mongoose.connection.host || null,
+            name: mongoose.connection.name || null
+        },
         timestamp: new Date().toISOString(),
         uptime: process.uptime()
     });

@@ -26,6 +26,9 @@ router.get('/statistics', protect, getRecruitmentStats);
 // @route   GET /api/recruitment/jobs
 router.get('/jobs', protect, getRecruitments);
 router.get('/jobs/:id', protect, getRecruitmentById);
+router.post('/jobs', protect, createRecruitment);
+router.put('/jobs/:id', protect, updateRecruitment);
+router.delete('/jobs/:id', protect, deleteRecruitment);
 
 // @route   GET /api/recruitments/:id
 // @desc    Get recruitment by ID
