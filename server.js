@@ -61,12 +61,12 @@ const startServer = async () => {
   try {
     await connectDB();
     server = app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📡 Health check available at http://localhost:${PORT}/health`);
-      console.log(`🔗 API Base URL at http://localhost:${PORT}/api`);
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Health check available at http://localhost:${PORT}/health`);
+      console.log(`API Base URL at http://localhost:${PORT}/api`);
     });
   } catch (error) {
-    console.error(`❌ Server startup halted due to MongoDB connection error: ${error.message}`);
+    console.error(`Server startup halted due to MongoDB connection error: ${error.message}`);
     process.exit(1);
   }
 };
