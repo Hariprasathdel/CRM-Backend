@@ -5,6 +5,7 @@ const router = express.Router();
 const authRoutes = require('./authRoutes');
 const employeeRoutes = require('./employeeRoutes');
 const attendanceRoutes = require('./attendanceRoutes');
+const AttendanceReportRoutes = require('./attendanceReportRoutes');
 const leaveRoutes = require('./leaveRoutes');
 const awardRoutes = require('./awardRoutes');
 const departmentRoutes = require('./departmentRoutes');
@@ -21,6 +22,7 @@ const dashboardRoutes = require('./dashboardRoutes');
 router.use('/auth', authRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/attendance', attendanceRoutes);
+router.use('/attendance-reports', AttendanceReportRoutes);
 router.use('/leaves', leaveRoutes);
 router.use('/awards', awardRoutes);
 router.use('/rewards', awardRoutes);
@@ -71,6 +73,7 @@ router.get('/docs', (req, res) => {
             auth: '/api/auth',
             employees: '/api/employees',
             attendance: '/api/attendance',
+            attendanceReports: '/api/attendance-reports',
             leaves: '/api/leaves',
             awards: '/api/awards',
             departments: '/api/departments',
