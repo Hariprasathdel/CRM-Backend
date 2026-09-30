@@ -37,7 +37,7 @@ app.use('/api/employee-reports', require('./routes/employeeReportRoutes'));
 app.use('/api/payslips', require('./routes/payslipRoutes'));
 app.use('api/attendance-reports', require('./routes/attendanceReportRoutes'));
 app.use('api/dashboard', require('./routes/dashboardRoutes'));
-
+app.use('/api/loan-reports', require('./routes/loanReportRoutes'));
 // Test route
 app.get('/api/test', (req, res) => {
     res.json({ success: true, message: 'API is working!' });
