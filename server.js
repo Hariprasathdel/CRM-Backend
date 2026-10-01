@@ -40,6 +40,8 @@ app.use('api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/loan-reports', require('./routes/loanReportRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/payslip-history', require('./routes/payslipHistoryRoutes'));
+app.use('/api/job-postings', require('./routes/jobPostingRoutes'));
+app.use('/api/applicants', require('./routes/applicantRoutes'));
 // Test route
 app.get('/api/test', (req, res) => {
     res.json({ success: true, message: 'API is working!' });
