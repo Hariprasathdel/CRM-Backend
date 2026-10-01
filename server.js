@@ -44,6 +44,7 @@ app.use('/api/job-postings', require('./routes/jobPostingRoutes'));
 app.use('/api/applicants', require('./routes/applicantRoutes'));
 app.use('/api/saved-reports', require('./routes/savedReportRoutes'));
 app.use('/api/award-reports', require('./routes/awardReportRoutes'));
+app.use('/api/mark-attendance', require('./routes/markAttendanceRoutes'));
 // Test route
 app.get('/api/test', (req, res) => {
     res.json({ success: true, message: 'API is working!' });
