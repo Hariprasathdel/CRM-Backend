@@ -7,7 +7,9 @@ const {
     generateAttendanceReport,
     deleteAttendanceReport,
     getAttendanceSummary,
-    getAttendanceTrend
+    getAttendanceTrend,
+    getDepartmentAttendanceReport,
+    exportAttendanceReport
 } = require('../controllers/attendanceReportController');
 const { protect, authorize } = require('../middleware/auth');
 const { validateRequest } = require('../utils/validators');
@@ -15,6 +17,8 @@ const { validateRequest } = require('../utils/validators');
 router.get('/', protect, getAttendanceReports);
 router.get('/summary', protect, getAttendanceSummary);
 router.get('/trend', protect, getAttendanceTrend);
+router.get('/departments', protect, getDepartmentAttendanceReport);
+router.get('/export', protect, exportAttendanceReport);
 router.get('/:id', protect, getAttendanceReportById);
 
 router.post(

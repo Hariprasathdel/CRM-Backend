@@ -35,8 +35,8 @@ app.use('/api/recruitments', require('./routes/recruitmentRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/employee-reports', require('./routes/employeeReportRoutes')); 
 app.use('/api/payslips', require('./routes/payslipRoutes'));
-app.use('api/attendance-reports', require('./routes/attendanceReportRoutes'));
-app.use('api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/attendance-reports', require('./routes/attendanceReportRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/loan-reports', require('./routes/loanReportRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/payslip-history', require('./routes/payslipHistoryRoutes'));
@@ -45,6 +45,36 @@ app.use('/api/applicants', require('./routes/applicantRoutes'));
 app.use('/api/saved-reports', require('./routes/savedReportRoutes'));
 app.use('/api/award-reports', require('./routes/awardReportRoutes'));
 app.use('/api/mark-attendance', require('./routes/markAttendanceRoutes'));
+
+// Health check routes
+const healthHandler = (req, res) => {
+    const mongoose = require('mongoose');
+    const dbState = mongoose.connection.readyState;
+    const dbStatusMap = {
+        0: 'disconnected',
+        1: 'connected',
+        2: 'connecting',
+        3: 'disconnecting'
+    };
+
+    res.json({
+        success: true,
+        status: dbState === 1 ? 'healthy' : 'degraded',
+        message: dbState === 1 ? 'Server and MongoDB are operational' : 'Database is not connected',
+        database: {
+            status: dbStatusMap[dbState] || 'unknown',
+            readyState: dbState,
+            host: mongoose.connection.host || null,
+            name: mongoose.connection.name || null
+        },
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+};
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
+
 // Test route
 app.get('/api/test', (req, res) => {
     res.json({ success: true, message: 'API is working!' });

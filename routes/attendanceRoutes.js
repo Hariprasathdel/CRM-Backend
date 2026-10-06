@@ -70,7 +70,7 @@ router.post(
             .isMongoId().withMessage('Invalid employee ID'),
         body('status')
             .notEmpty().withMessage('Status is required')
-            .isIn(['present', 'absent', 'leave', 'abuse']).withMessage('Invalid status'),
+            .isIn(['present', 'absent', 'leave', 'abuse', 'late']).withMessage('Invalid status'),
         body('date')
             .optional()
             .isISO8601().withMessage('Invalid date format'),
@@ -94,7 +94,7 @@ router.put(
     [
         body('status')
             .optional()
-            .isIn(['present', 'absent', 'leave', 'abuse']).withMessage('Invalid status'),
+            .isIn(['present', 'absent', 'leave', 'abuse', 'late']).withMessage('Invalid status'),
         body('checkIn')
             .optional()
             .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid time format HH:MM'),

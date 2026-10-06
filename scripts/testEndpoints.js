@@ -121,6 +121,48 @@ const runTests = async () => {
     const awards = await request('GET', '/api/awards', null, token);
     assertTest('Awards List from MongoDB (/api/awards)', awards.status === 200 && awards.body.data?.length > 0);
 
+    // 16. Attendance Reports (Live Employee Attendance Data)
+    const attReports = await request('GET', '/api/attendance-reports', null, token);
+    assertTest('Attendance Reports Live Data (/api/attendance-reports)', 
+      attReports.status === 200 && Array.isArray(attReports.body.data) && attReports.body.data.length > 0,
+      `Status: ${attReports.status}, Items: ${attReports.body.data?.length}`
+    );
+
+    // 17. Attendance Reports Summary
+    const attSummary = await request('GET', '/api/attendance-reports/summary', null, token);
+    assertTest('Attendance Reports Summary (/api/attendance-reports/summary)', 
+      attSummary.status === 200 && attSummary.body.data?.totalEmployees > 0,
+      `Status: ${attSummary.status}, Summary: ${JSON.stringify(attSummary.body.data)}`
+    );
+
+    // 18. Attendance Reports Trend
+    const attTrend = await request('GET', '/api/attendance-reports/trend', null, token);
+    assertTest('Attendance Reports Trend (/api/attendance-reports/trend)', 
+      attTrend.status === 200 && Array.isArray(attTrend.body.data) && attTrend.body.data.length > 0,
+      `Status: ${attTrend.status}, Trend points: ${attTrend.body.data?.length}`
+    );
+
+    // 19. Attendance Reports Department Breakdown
+    const attDept = await request('GET', '/api/attendance-reports/departments', null, token);
+    assertTest('Attendance Reports Departments (/api/attendance-reports/departments)', 
+      attDept.status === 200 && Array.isArray(attDept.body.data) && attDept.body.data.length > 0,
+      `Status: ${attDept.status}, Depts: ${attDept.body.data?.length}`
+    );
+
+    // 20. Attendance Reports CSV Export
+    const attExport = await request('GET', '/api/attendance-reports/export', null, token);
+    assertTest('Attendance Reports Export (/api/attendance-reports/export)', 
+      attExport.status === 200 && typeof attExport.body === 'string' && attExport.body.includes('Employee Name'),
+      `Status: ${attExport.status}`
+    );
+
+    // 21. General Reports List from MongoDB (/api/reports)
+    const genReports = await request('GET', '/api/reports', null, token);
+    assertTest('General Reports from MongoDB (/api/reports)', 
+      genReports.status === 200 && Array.isArray(genReports.body.data) && genReports.body.data.length > 0,
+      `Status: ${genReports.status}, Reports count: ${genReports.body.data?.length}`
+    );
+
     console.log(`\n📊 Test Summary: ${passCount} Passed, ${failCount} Failed.`);
     if (failCount > 0) {
       process.exitCode = 1;

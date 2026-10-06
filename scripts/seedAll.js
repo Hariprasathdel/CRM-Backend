@@ -13,6 +13,7 @@ const Loan = require('../models/Loan');
 const Payslip = require('../models/Payslip');
 const Recruitment = require('../models/Recruitment');
 const Report = require('../models/Report');
+const AttendanceReport = require('../models/AttendanceReport');
 
 const seedData = async () => {
     try {
@@ -235,31 +236,67 @@ const seedData = async () => {
         }
         console.log(`   ✅ Seeded ${createdEmployees.length} employees`);
 
-        // 4. Seed Attendance Records for Today
-        console.log('📅 Seeding Attendance...');
-        const today = new Date();
-        today.setHours(9, 0, 0, 0);
+        // 4. Seed Attendance Records across recent weeks up to today
+        console.log('📅 Seeding Multi-Day Attendance Records...');
+        await Attendance.deleteMany({});
 
-        await Attendance.deleteMany({
-            date: {
-                $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-                $lt: new Date(new Date().setHours(23, 59, 59, 999))
-            }
-        });
+        const attendanceData = [];
+        const now = new Date();
 
-        const attendanceData = [
-            { employeeId: createdEmployees[0]._id, date: today, status: 'present', checkIn: '08:55', checkOut: '17:30', workingHours: 8.5 },
-            { employeeId: createdEmployees[1]._id, date: today, status: 'present', checkIn: '09:05', checkOut: '17:45', workingHours: 8.5 },
-            { employeeId: createdEmployees[2]._id, date: today, status: 'present', checkIn: '08:45', checkOut: '17:15', workingHours: 8.5 },
-            { employeeId: createdEmployees[3]._id, date: today, status: 'present', checkIn: '09:12', checkOut: '17:50', workingHours: 8.5 },
-            { employeeId: createdEmployees[4]._id, date: today, status: 'present', checkIn: '08:30', checkOut: '17:00', workingHours: 8.5 },
-            { employeeId: createdEmployees[5]._id, date: today, status: 'present', checkIn: '09:00', checkOut: '17:30', workingHours: 8.5 },
-            { employeeId: createdEmployees[6]._id, date: today, status: 'leave', workingHours: 0, remarks: 'On approved annual leave' },
-            { employeeId: createdEmployees[7]._id, date: today, status: 'absent', workingHours: 0, remarks: 'Sick leave notice' }
-        ];
+        // Generate past 30 days of dates (excluding weekends)
+        for (let d = 30; d >= 0; d--) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - d);
+            const dayOfWeek = date.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip Saturday & Sunday
+
+            createdEmployees.forEach((emp, empIdx) => {
+                let status = 'present';
+                let checkIn = '09:00';
+                let checkOut = '17:30';
+                let workingHours = 8.5;
+                let overtime = 0;
+
+                // Occasional leave, absent, or late
+                if ((empIdx + d) % 17 === 0) {
+                    status = 'leave';
+                    checkIn = null;
+                    checkOut = null;
+                    workingHours = 0;
+                } else if ((empIdx + d) % 23 === 0) {
+                    status = 'absent';
+                    checkIn = null;
+                    checkOut = null;
+                    workingHours = 0;
+                } else if ((empIdx + d) % 11 === 0) {
+                    status = 'late';
+                    checkIn = '09:45';
+                    checkOut = '18:00';
+                    workingHours = 8.25;
+                } else if (empIdx % 2 === 0 && d % 4 === 0) {
+                    overtime = 1.5;
+                    checkOut = '19:00';
+                    workingHours = 10;
+                }
+
+                const recDate = new Date(date);
+                recDate.setHours(9, 0, 0, 0);
+
+                attendanceData.push({
+                    employeeId: emp._id,
+                    date: recDate,
+                    status,
+                    checkIn,
+                    checkOut,
+                    workingHours,
+                    overtime,
+                    remarks: status === 'present' ? 'On time' : status
+                });
+            });
+        }
 
         await Attendance.insertMany(attendanceData);
-        console.log(`   ✅ Seeded ${attendanceData.length} attendance records for today`);
+        console.log(`   ✅ Seeded ${attendanceData.length} attendance records across the past 30 days`);
 
         // 5. Seed Leaves
         console.log('🏖️ Seeding Leaves...');
@@ -608,6 +645,60 @@ const seedData = async () => {
 
         await Report.insertMany(reportsData);
         console.log(`   ✅ Seeded ${reportsData.length} reports`);
+
+        // 12. Seed Attendance Reports in AttendanceReport collection
+        await AttendanceReport.deleteMany({});
+        const attendanceReportsData = [
+            {
+                title: 'Monthly Company Attendance Report - Recent',
+                reportType: 'monthly',
+                dateRange: {
+                    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                    endDate: new Date()
+                },
+                department: 'all',
+                employeeIds: createdEmployees.map(e => e._id),
+                summary: {
+                    totalEmployees: createdEmployees.length,
+                    totalWorkingDays: 22,
+                    totalPresent: 160,
+                    totalAbsent: 5,
+                    totalLeave: 8,
+                    totalAbuse: 3,
+                    averageAttendance: 91.5,
+                    presentPercentage: 91.5,
+                    absentPercentage: 2.8,
+                    leavePercentage: 4.5
+                },
+                employeeWiseData: createdEmployees.map((e, idx) => ({
+                    employeeId: e._id,
+                    employeeName: e.name,
+                    employeeCode: `EMP-${String(e._id).slice(-4).toUpperCase()}`,
+                    department: e.department,
+                    position: e.position,
+                    presentDays: 20 - (idx % 2),
+                    absentDays: idx % 3 === 0 ? 1 : 0,
+                    leaveDays: idx % 2 === 0 ? 1 : 0,
+                    abuseDays: 0,
+                    totalDays: 22,
+                    attendancePercentage: Math.round(((20 - (idx % 2)) / 22) * 100),
+                    overtimeHours: idx * 2
+                })),
+                departmentWiseData: [
+                    { department: 'Software Development', totalEmployees: 3, presentDays: 60, absentDays: 1, leaveDays: 2, abuseDays: 0, averageAttendance: 95.2 },
+                    { department: 'Marketing', totalEmployees: 2, presentDays: 40, absentDays: 0, leaveDays: 2, abuseDays: 0, averageAttendance: 95.0 },
+                    { department: 'Human Resources', totalEmployees: 1, presentDays: 21, absentDays: 0, leaveDays: 1, abuseDays: 0, averageAttendance: 95.5 },
+                    { department: 'Operations', totalEmployees: 1, presentDays: 20, absentDays: 1, leaveDays: 1, abuseDays: 0, averageAttendance: 90.9 },
+                    { department: 'Finance', totalEmployees: 1, presentDays: 22, absentDays: 0, leaveDays: 0, abuseDays: 0, averageAttendance: 100.0 }
+                ],
+                dailyData: [],
+                generatedBy: adminUser._id,
+                status: 'completed',
+                notes: 'Automated monthly seed report'
+            }
+        ];
+        await AttendanceReport.insertMany(attendanceReportsData);
+        console.log(`   ✅ Seeded ${attendanceReportsData.length} saved attendance reports`);
 
         console.log('\n🎉 ALL DATABASE SEEDING COMPLETED SUCCESSFULLY!');
         console.log('----------------------------------------------------');

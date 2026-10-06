@@ -1,41 +1,503 @@
 const AttendanceReport = require('../models/AttendanceReport');
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
+const Department = require('../models/Department');
 
-// @desc    Get all attendance reports
+// Helper to parse date range
+const parseDates = (startDate, endDate) => {
+    let start, end;
+    if (startDate) {
+        start = new Date(startDate);
+    } else {
+        const now = new Date();
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    start.setHours(0, 0, 0, 0);
+
+    if (endDate) {
+        end = new Date(endDate);
+    } else {
+        end = new Date();
+    }
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+};
+
+// @desc    Get live employee attendance report or saved reports
 // @route   GET /api/attendance-reports
 const getAttendanceReports = async (req, res) => {
     try {
-        const { page = 1, limit = 10, reportType, status, search } = req.query;
-        const query = {};
-        if (reportType) query.reportType = reportType;
-        if (status) query.status = status;
-        if (search) query.title = { $regex: search, $options: 'i' };
+        const { 
+            page = 1, 
+            limit = 10, 
+            startDate, 
+            endDate, 
+            department, 
+            status, 
+            search, 
+            sortBy = 'employeeName', 
+            sortOrder = 'asc',
+            saved
+        } = req.query;
 
-        const reports = await AttendanceReport.find(query)
-            .populate('generatedBy', 'name email')
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit))
-            .sort({ createdAt: -1 });
+        // If explicitly requesting saved reports from AttendanceReport collection
+        if (saved === 'true') {
+            const query = {};
+            if (search) query.title = { $regex: search, $options: 'i' };
 
-        const total = await AttendanceReport.countDocuments(query);
+            const reports = await AttendanceReport.find(query)
+                .populate('generatedBy', 'name email')
+                .skip((page - 1) * limit)
+                .limit(parseInt(limit))
+                .sort({ createdAt: -1 });
+
+            const total = await AttendanceReport.countDocuments(query);
+
+            return res.json({
+                success: true,
+                data: reports,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit) || 1
+                }
+            });
+        }
+
+        // Live aggregated attendance report across employees
+        const { start, end } = parseDates(startDate, endDate);
+
+        // Build Employee query
+        const employeeQuery = { status: { $ne: 'inactive' } };
+        if (department && department !== 'all' && department !== 'All' && department.trim() !== '') {
+            employeeQuery.department = { $regex: new RegExp(department.trim(), 'i') };
+        }
+        if (search && search.trim() !== '') {
+            employeeQuery.$or = [
+                { name: { $regex: search.trim(), $options: 'i' } },
+                { position: { $regex: search.trim(), $options: 'i' } },
+                { email: { $regex: search.trim(), $options: 'i' } }
+            ];
+        }
+
+        const employees = await Employee.find(employeeQuery).lean();
+        const employeeIds = employees.map(e => e._id);
+
+        // Build Attendance query
+        const attendanceQuery = {
+            date: { $gte: start, $lte: end },
+            employeeId: { $in: employeeIds }
+        };
+
+        const records = await Attendance.find(attendanceQuery).lean();
+
+        // Group attendance by employee
+        const recordsByEmp = {};
+        employees.forEach(emp => {
+            recordsByEmp[emp._id.toString()] = [];
+        });
+
+        records.forEach(rec => {
+            const empIdStr = rec.employeeId?.toString();
+            if (recordsByEmp[empIdStr]) {
+                recordsByEmp[empIdStr].push(rec);
+            }
+        });
+
+        // Compute employee-wise metrics
+        let employeeRows = employees.map(emp => {
+            const empRecords = recordsByEmp[emp._id.toString()] || [];
+            let presentDays = 0;
+            let absentDays = 0;
+            let leaveDays = 0;
+            let lateDays = 0;
+            let totalWorkingHours = 0;
+            let totalOvertime = 0;
+
+            empRecords.forEach(r => {
+                const s = (r.status || '').toLowerCase();
+                if (s === 'present') presentDays++;
+                else if (s === 'absent') absentDays++;
+                else if (s === 'leave') leaveDays++;
+                else if (s === 'late' || s === 'abuse') lateDays++;
+
+                totalWorkingHours += (r.workingHours || (s === 'present' ? 8 : 0));
+                totalOvertime += (r.overtime || 0);
+            });
+
+            const totalDays = presentDays + absentDays + leaveDays + lateDays;
+            const attendanceRate = totalDays > 0 
+                ? Math.round((presentDays / totalDays) * 100 * 10) / 10 
+                : 0;
+
+            let performanceStatus = 'Good';
+            if (attendanceRate >= 90) performanceStatus = 'Excellent';
+            else if (attendanceRate >= 75) performanceStatus = 'Good';
+            else if (attendanceRate >= 60) performanceStatus = 'Average';
+            else if (totalDays > 0) performanceStatus = 'Poor';
+            else performanceStatus = 'Average';
+
+            const empCode = emp.employeeCode || `EMP-${String(emp._id).slice(-4).toUpperCase()}`;
+
+            return {
+                _id: emp._id,
+                id: emp._id,
+                employeeName: emp.name,
+                employeeId: empCode,
+                department: emp.department || 'General',
+                position: emp.position || 'Staff',
+                presentDays,
+                absentDays,
+                leaveDays,
+                lateDays,
+                totalDays,
+                attendanceRate,
+                performanceStatus,
+                totalWorkingHours,
+                totalOvertime
+            };
+        });
+
+        // Filter by status if specified
+        if (status && status !== 'all' && status !== 'All') {
+            const sLower = status.toLowerCase();
+            if (sLower === 'present') {
+                employeeRows = employeeRows.filter(r => r.presentDays > 0);
+            } else if (sLower === 'absent') {
+                employeeRows = employeeRows.filter(r => r.absentDays > 0);
+            } else if (sLower === 'leave') {
+                employeeRows = employeeRows.filter(r => r.leaveDays > 0);
+            } else if (sLower === 'late') {
+                employeeRows = employeeRows.filter(r => r.lateDays > 0);
+            }
+        }
+
+        // Sorting
+        employeeRows.sort((a, b) => {
+            let valA = a[sortBy] ?? '';
+            let valB = b[sortBy] ?? '';
+            if (typeof valA === 'string') {
+                const cmp = valA.localeCompare(String(valB));
+                return sortOrder === 'desc' ? -cmp : cmp;
+            }
+            return sortOrder === 'desc' ? valB - valA : valA - valB;
+        });
+
+        // Pagination
+        const total = employeeRows.length;
+        const pageNum = Math.max(1, parseInt(page));
+        const limitNum = Math.max(1, parseInt(limit));
+        const startIndex = (pageNum - 1) * limitNum;
+        const paginatedData = employeeRows.slice(startIndex, startIndex + limitNum);
 
         res.json({
             success: true,
-            data: reports,
+            data: paginatedData,
             pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
+                page: pageNum,
+                limit: limitNum,
                 total,
-                pages: Math.ceil(total / limit)
+                pages: Math.ceil(total / limitNum) || 1
             }
         });
     } catch (error) {
+        console.error('Error in getAttendanceReports:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// @desc    Get single attendance report
+// @desc    Get attendance summary
+// @route   GET /api/attendance-reports/summary
+const getAttendanceSummary = async (req, res) => {
+    try {
+        const { startDate, endDate, department } = req.query;
+        const { start, end } = parseDates(startDate, endDate);
+
+        const employeeQuery = { status: { $ne: 'inactive' } };
+        if (department && department !== 'all' && department !== 'All' && department.trim() !== '') {
+            employeeQuery.department = { $regex: new RegExp(department.trim(), 'i') };
+        }
+
+        const employees = await Employee.find(employeeQuery).lean();
+        const employeeIds = employees.map(emp => emp._id);
+
+        const query = {
+            date: { $gte: start, $lte: end },
+            employeeId: { $in: employeeIds }
+        };
+
+        const records = await Attendance.find(query).lean();
+
+        let totalPresent = 0;
+        let totalAbsent = 0;
+        let totalLeave = 0;
+        let totalLate = 0;
+        let totalHours = 0;
+        let totalOvertime = 0;
+
+        records.forEach(r => {
+            const s = (r.status || '').toLowerCase();
+            if (s === 'present') {
+                totalPresent++;
+                totalHours += (r.workingHours || 8);
+            } else if (s === 'absent') {
+                totalAbsent++;
+            } else if (s === 'leave') {
+                totalLeave++;
+            } else if (s === 'late' || s === 'abuse') {
+                totalLate++;
+                totalHours += (r.workingHours || 6);
+            }
+            totalOvertime += (r.overtime || 0);
+        });
+
+        const totalRecords = totalPresent + totalAbsent + totalLeave + totalLate;
+        const avgWorkingHours = totalPresent > 0 ? Math.round((totalHours / totalPresent) * 10) / 10 : 0;
+
+        const summary = {
+            totalEmployees: employees.length,
+            totalPresent,
+            totalAbsent,
+            totalLeave,
+            totalLate,
+            present: totalPresent,
+            absent: totalAbsent,
+            leave: totalLeave,
+            late: totalLate,
+            avgWorkingHours,
+            totalOvertime,
+            presentPercentage: totalRecords > 0 ? Math.round((totalPresent / totalRecords) * 100) : 0,
+            absentPercentage: totalRecords > 0 ? Math.round((totalAbsent / totalRecords) * 100) : 0,
+            leavePercentage: totalRecords > 0 ? Math.round((totalLeave / totalRecords) * 100) : 0,
+            dateRange: { startDate: start, endDate: end }
+        };
+
+        res.json({ success: true, data: summary });
+    } catch (error) {
+        console.error('Error in getAttendanceSummary:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get daily attendance trend
+// @route   GET /api/attendance-reports/trend
+const getAttendanceTrend = async (req, res) => {
+    try {
+        const { startDate, endDate, department } = req.query;
+        let start, end;
+        if (startDate && endDate) {
+            const parsed = parseDates(startDate, endDate);
+            start = parsed.start;
+            end = parsed.end;
+        } else {
+            end = new Date();
+            end.setHours(23, 59, 59, 999);
+            start = new Date();
+            start.setDate(start.getDate() - 14);
+            start.setHours(0, 0, 0, 0);
+        }
+
+        const employeeQuery = { status: { $ne: 'inactive' } };
+        if (department && department !== 'all' && department !== 'All' && department.trim() !== '') {
+            employeeQuery.department = { $regex: new RegExp(department.trim(), 'i') };
+        }
+
+        const employees = await Employee.find(employeeQuery).lean();
+        const employeeIds = employees.map(e => e._id);
+
+        const records = await Attendance.find({
+            date: { $gte: start, $lte: end },
+            employeeId: { $in: employeeIds }
+        }).sort({ date: 1 }).lean();
+
+        const trendMap = {};
+        records.forEach(r => {
+            const dateStr = new Date(r.date).toISOString().split('T')[0];
+            if (!trendMap[dateStr]) {
+                trendMap[dateStr] = {
+                    date: dateStr,
+                    present: 0,
+                    absent: 0,
+                    leave: 0,
+                    late: 0
+                };
+            }
+            const s = (r.status || '').toLowerCase();
+            if (s === 'present') trendMap[dateStr].present++;
+            else if (s === 'absent') trendMap[dateStr].absent++;
+            else if (s === 'leave') trendMap[dateStr].leave++;
+            else if (s === 'late' || s === 'abuse') trendMap[dateStr].late++;
+        });
+
+        // Ensure trend array is sorted chronologically
+        const trendData = Object.values(trendMap).sort((a, b) => a.date.localeCompare(b.date));
+
+        res.json({ success: true, data: trendData });
+    } catch (error) {
+        console.error('Error in getAttendanceTrend:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get department attendance report
+// @route   GET /api/attendance-reports/departments
+const getDepartmentAttendanceReport = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const { start, end } = parseDates(startDate, endDate);
+
+        const employees = await Employee.find({ status: { $ne: 'inactive' } }).lean();
+        const departments = await Department.find({}).lean();
+
+        const deptMap = {};
+        // Initialize from departments collection
+        departments.forEach(d => {
+            deptMap[d.name] = {
+                _id: d._id,
+                departmentName: d.name,
+                name: d.name,
+                totalRecords: 0,
+                present: 0,
+                absent: 0,
+                leave: 0,
+                late: 0,
+                attendanceRate: 0
+            };
+        });
+
+        // Also ensure all employee departments are covered
+        employees.forEach(e => {
+            const dept = e.department || 'General';
+            if (!deptMap[dept]) {
+                deptMap[dept] = {
+                    _id: dept,
+                    departmentName: dept,
+                    name: dept,
+                    totalRecords: 0,
+                    present: 0,
+                    absent: 0,
+                    leave: 0,
+                    late: 0,
+                    attendanceRate: 0
+                };
+            }
+        });
+
+        const records = await Attendance.find({
+            date: { $gte: start, $lte: end },
+            employeeId: { $in: employees.map(e => e._id) }
+        }).populate('employeeId', 'department').lean();
+
+        records.forEach(r => {
+            const dept = r.employeeId?.department || 'General';
+            if (!deptMap[dept]) {
+                deptMap[dept] = {
+                    _id: dept,
+                    departmentName: dept,
+                    name: dept,
+                    totalRecords: 0,
+                    present: 0,
+                    absent: 0,
+                    leave: 0,
+                    late: 0,
+                    attendanceRate: 0
+                };
+            }
+            deptMap[dept].totalRecords++;
+            const s = (r.status || '').toLowerCase();
+            if (s === 'present') deptMap[dept].present++;
+            else if (s === 'absent') deptMap[dept].absent++;
+            else if (s === 'leave') deptMap[dept].leave++;
+            else if (s === 'late' || s === 'abuse') deptMap[dept].late++;
+        });
+
+        const departmentReport = Object.values(deptMap).map(d => {
+            const rate = d.totalRecords > 0 
+                ? Math.round((d.present / d.totalRecords) * 100 * 10) / 10 
+                : 0;
+            return {
+                ...d,
+                attendanceRate: rate
+            };
+        });
+
+        res.json({ success: true, data: departmentReport });
+    } catch (error) {
+        console.error('Error in getDepartmentAttendanceReport:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Export attendance report as CSV
+// @route   GET /api/attendance-reports/export
+const exportAttendanceReport = async (req, res) => {
+    try {
+        const { startDate, endDate, department, status, format = 'csv' } = req.query;
+        const { start, end } = parseDates(startDate, endDate);
+
+        const employeeQuery = { status: { $ne: 'inactive' } };
+        if (department && department !== 'all' && department !== 'All' && department.trim() !== '') {
+            employeeQuery.department = { $regex: new RegExp(department.trim(), 'i') };
+        }
+
+        const employees = await Employee.find(employeeQuery).lean();
+        const employeeIds = employees.map(e => e._id);
+
+        const records = await Attendance.find({
+            date: { $gte: start, $lte: end },
+            employeeId: { $in: employeeIds }
+        }).lean();
+
+        const recordsByEmp = {};
+        employees.forEach(emp => { recordsByEmp[emp._id.toString()] = []; });
+        records.forEach(rec => {
+            const empIdStr = rec.employeeId?.toString();
+            if (recordsByEmp[empIdStr]) recordsByEmp[empIdStr].push(rec);
+        });
+
+        const rows = employees.map((emp, idx) => {
+            const empRecords = recordsByEmp[emp._id.toString()] || [];
+            let present = 0, absent = 0, leave = 0, late = 0;
+            empRecords.forEach(r => {
+                const s = (r.status || '').toLowerCase();
+                if (s === 'present') present++;
+                else if (s === 'absent') absent++;
+                else if (s === 'leave') leave++;
+                else if (s === 'late' || s === 'abuse') late++;
+            });
+            const total = present + absent + leave + late;
+            const rate = total > 0 ? ((present / total) * 100).toFixed(1) : '0.0';
+            const empCode = emp.employeeCode || `EMP-${String(emp._id).slice(-4).toUpperCase()}`;
+
+            return [
+                idx + 1,
+                `"${emp.name.replace(/"/g, '""')}"`,
+                `"${empCode}"`,
+                `"${(emp.department || '').replace(/"/g, '""')}"`,
+                `"${(emp.position || '').replace(/"/g, '""')}"`,
+                present,
+                absent,
+                leave,
+                total,
+                `"${rate}%"`
+            ].join(',');
+        });
+
+        const csvHeader = 'Index,Employee Name,Employee ID,Department,Position,Present Days,Absent Days,Leave Days,Total Days,Attendance Rate\n';
+        const csvContent = csvHeader + rows.join('\n');
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="attendance-report-${new Date().toISOString().split('T')[0]}.csv"`);
+        return res.send(csvContent);
+    } catch (error) {
+        console.error('Error exporting attendance report:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get single attendance report (saved)
 // @route   GET /api/attendance-reports/:id
 const getAttendanceReportById = async (req, res) => {
     try {
@@ -52,19 +514,12 @@ const getAttendanceReportById = async (req, res) => {
     }
 };
 
-// @desc    Generate attendance report
+// @desc    Generate attendance report and persist to AttendanceReport model
 // @route   POST /api/attendance-reports/generate
 const generateAttendanceReport = async (req, res) => {
     try {
         const { title, reportType, startDate, endDate, department, employeeIds, notes } = req.body;
-
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-
-        if (start > end) {
-            return res.status(400).json({ success: false, message: 'Start date must be before end date' });
-        }
+        const { start, end } = parseDates(startDate, endDate);
 
         const attendanceQuery = { date: { $gte: start, $lte: end } };
         const employeeQuery = { status: { $ne: 'inactive' } };
@@ -133,6 +588,7 @@ const generateAttendanceReport = async (req, res) => {
                     employeeDataMap[empId].leaveDays++;
                     break;
                 case 'abuse':
+                case 'late':
                     summary.totalAbuse++;
                     employeeDataMap[empId].abuseDays++;
                     break;
@@ -148,7 +604,8 @@ const generateAttendanceReport = async (req, res) => {
                     present: 0, absent: 0, leave: 0, abuse: 0, total: 0
                 };
             }
-            dailyDataMap[dateKey][record.status]++;
+            dailyDataMap[dateKey][record.status === 'late' ? 'abuse' : record.status] = 
+                (dailyDataMap[dateKey][record.status === 'late' ? 'abuse' : record.status] || 0) + 1;
             dailyDataMap[dateKey].total++;
         });
 
@@ -169,40 +626,6 @@ const generateAttendanceReport = async (req, res) => {
             summary.averageAttendance = summary.presentPercentage;
         }
 
-        const departmentMap = {};
-        employeeWiseData.forEach(emp => {
-            if (!departmentMap[emp.department]) {
-                departmentMap[emp.department] = {
-                    department: emp.department,
-                    totalEmployees: 0,
-                    presentDays: 0,
-                    absentDays: 0,
-                    leaveDays: 0,
-                    abuseDays: 0,
-                    averageAttendance: 0
-                };
-            }
-            departmentMap[emp.department].totalEmployees++;
-            departmentMap[emp.department].presentDays += emp.presentDays;
-            departmentMap[emp.department].absentDays += emp.absentDays;
-            departmentMap[emp.department].leaveDays += emp.leaveDays;
-            departmentMap[emp.department].abuseDays += emp.abuseDays;
-        });
-
-        const departmentWiseData = Object.values(departmentMap).map(dept => {
-            const total = dept.presentDays + dept.absentDays + dept.leaveDays + dept.abuseDays;
-            return {
-                ...dept,
-                averageAttendance: total > 0
-                    ? Math.round((dept.presentDays / total) * 100 * 100) / 100
-                    : 0
-            };
-        });
-
-        const dailyData = Object.values(dailyDataMap).sort(
-            (a, b) => new Date(a.date) - new Date(b.date)
-        );
-
         const report = await AttendanceReport.create({
             title: title || `Attendance Report - ${start.toLocaleDateString()} to ${end.toLocaleDateString()}`,
             reportType: reportType || 'custom',
@@ -211,10 +634,10 @@ const generateAttendanceReport = async (req, res) => {
             employeeIds: employeeIdList,
             summary,
             employeeWiseData,
-            departmentWiseData,
-            dailyData,
+            departmentWiseData: [],
+            dailyData: Object.values(dailyDataMap),
             filters: { department, employeeIds },
-            generatedBy: req.user.id,
+            generatedBy: req.user._id || req.user.id,
             status: 'completed',
             notes
         });
@@ -245,117 +668,13 @@ const deleteAttendanceReport = async (req, res) => {
     }
 };
 
-// @desc    Get attendance summary
-// @route   GET /api/attendance-reports/summary
-const getAttendanceSummary = async (req, res) => {
-    try {
-        const { startDate, endDate, department } = req.query;
-        const start = startDate ? new Date(startDate) : new Date(new Date().setDate(1));
-        const end = endDate ? new Date(endDate) : new Date();
-        end.setHours(23, 59, 59, 999);
-
-        const query = { date: { $gte: start, $lte: end } };
-        const employeeQuery = { status: { $ne: 'inactive' } };
-
-        if (department && department !== 'all') employeeQuery.department = department;
-
-        const employees = await Employee.find(employeeQuery);
-        const employeeIds = employees.map(emp => emp._id);
-
-        if (employeeIds.length > 0) query.employeeId = { $in: employeeIds };
-
-        const stats = await Attendance.aggregate([
-            { $match: query },
-            { $group: { _id: '$status', count: { $sum: 1 } } }
-        ]);
-
-        const summary = {
-            totalEmployees: employees.length,
-            present: 0, absent: 0, leave: 0, abuse: 0,
-            dateRange: { startDate: start, endDate: end }
-        };
-
-        stats.forEach(stat => {
-            if (stat._id === 'present') summary.present = stat.count;
-            if (stat._id === 'absent') summary.absent = stat.count;
-            if (stat._id === 'leave') summary.leave = stat.count;
-            if (stat._id === 'abuse') summary.abuse = stat.count;
-        });
-
-        const total = summary.present + summary.absent + summary.leave + summary.abuse;
-        summary.presentPercentage = total > 0 ? Math.round((summary.present / total) * 100) : 0;
-        summary.absentPercentage = total > 0 ? Math.round((summary.absent / total) * 100) : 0;
-        summary.leavePercentage = total > 0 ? Math.round((summary.leave / total) * 100) : 0;
-        summary.abusePercentage = total > 0 ? Math.round((summary.abuse / total) * 100) : 0;
-
-        res.json({ success: true, data: summary });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
-// @desc    Get attendance trend
-// @route   GET /api/attendance-reports/trend
-const getAttendanceTrend = async (req, res) => {
-    try {
-        const { months = 6, department } = req.query;
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setMonth(startDate.getMonth() - parseInt(months));
-
-        const query = { date: { $gte: startDate, $lte: endDate } };
-
-        if (department && department !== 'all') {
-            const employees = await Employee.find({ department, status: { $ne: 'inactive' } });
-            query.employeeId = { $in: employees.map(e => e._id) };
-        }
-
-        const trend = await Attendance.aggregate([
-            { $match: query },
-            {
-                $group: {
-                    _id: {
-                        year: { $year: '$date' },
-                        month: { $month: '$date' },
-                        status: '$status'
-                    },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { '_id.year': 1, '_id.month': 1 } }
-        ]);
-
-        const trendMap = {};
-        trend.forEach(item => {
-            const key = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
-            if (!trendMap[key]) {
-                trendMap[key] = {
-                    year: item._id.year,
-                    month: item._id.month,
-                    monthName: new Date(item._id.year, item._id.month - 1).toLocaleString('default', { month: 'short' }),
-                    present: 0, absent: 0, leave: 0, abuse: 0, total: 0
-                };
-            }
-            trendMap[key][item._id.status] = item.count;
-            trendMap[key].total += item.count;
-        });
-
-        const trendData = Object.values(trendMap).sort((a, b) => {
-            if (a.year !== b.year) return a.year - b.year;
-            return a.month - b.month;
-        });
-
-        res.json({ success: true, data: trendData });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
 module.exports = {
     getAttendanceReports,
     getAttendanceReportById,
     generateAttendanceReport,
     deleteAttendanceReport,
     getAttendanceSummary,
-    getAttendanceTrend
+    getAttendanceTrend,
+    getDepartmentAttendanceReport,
+    exportAttendanceReport
 };
