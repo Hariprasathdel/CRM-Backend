@@ -14,6 +14,7 @@ const Payslip = require('../models/Payslip');
 const Recruitment = require('../models/Recruitment');
 const Report = require('../models/Report');
 const AttendanceReport = require('../models/AttendanceReport');
+const AwardReport = require('../models/AwardReport');
 
 const seedData = async () => {
     try {
@@ -396,33 +397,102 @@ const seedData = async () => {
                 employeeId: createdEmployees[0]._id,
                 employeeName: createdEmployees[0].name,
                 department: createdEmployees[0].department,
-                awardName: 'Developer of the Quarter',
-                type: 'best_employee',
-                description: 'Outstanding technical leadership and rapid feature turnaround',
-                date: new Date('2026-06-15')
-            },
-            {
-                employeeId: createdEmployees[2]._id,
-                employeeName: createdEmployees[2].name,
-                department: createdEmployees[2].department,
-                awardName: 'Code Quality Champion',
-                type: 'innovation',
-                description: 'Achieving zero defect rate on frontend delivery for 3 months straight',
-                date: new Date('2026-05-10')
+                awardName: 'Gascapitol Enterprise Pioneer Award',
+                type: 'gascapitol',
+                amount: 1500,
+                date: new Date('2026-02-15'),
+                presentedBy: 'Executive Leadership',
+                certificate: 'CERT-2026-001',
+                description: 'Pioneered new cloud microservices architecture saving 40% compute overhead.'
             },
             {
                 employeeId: createdEmployees[1]._id,
                 employeeName: createdEmployees[1].name,
                 department: createdEmployees[1].department,
-                awardName: 'Top Campaign Producer',
+                awardName: 'Coby Beach Growth Champion',
+                type: 'coby_beach',
+                amount: 1200,
+                date: new Date('2026-03-20'),
+                presentedBy: 'Chief Marketing Officer',
+                certificate: 'CERT-2026-002',
+                description: 'Spearheaded Q1 product expansion drive resulting in 180% inbound lead boost.'
+            },
+            {
+                employeeId: createdEmployees[2]._id,
+                employeeName: createdEmployees[2].name,
+                department: createdEmployees[2].department,
+                awardName: 'Code Quality & Architecture Champion',
+                type: 'innovation',
+                amount: 1000,
+                date: new Date('2026-04-10'),
+                presentedBy: 'VP of Engineering',
+                certificate: 'CERT-2026-003',
+                description: 'Achieved zero critical defect rate for two consecutive release cycles.'
+            },
+            {
+                employeeId: createdEmployees[3]._id,
+                employeeName: createdEmployees[3].name,
+                department: createdEmployees[3].department,
+                awardName: 'People & Culture Leadership Star',
                 type: 'leadership',
-                description: 'Exceeded inbound leads generation target by 140%',
-                date: new Date('2026-07-20')
+                amount: 900,
+                date: new Date('2026-05-18'),
+                presentedBy: 'Head of People Operations',
+                certificate: 'CERT-2026-004',
+                description: 'Transformed onboarding workflow reducing time-to-productivity by 35%.'
+            },
+            {
+                employeeId: createdEmployees[4]._id,
+                employeeName: createdEmployees[4].name,
+                department: createdEmployees[4].department,
+                awardName: 'Best Team Player of the Quarter',
+                type: 'team_player',
+                amount: 750,
+                date: new Date('2026-06-25'),
+                presentedBy: 'Operations Director',
+                certificate: 'CERT-2026-005',
+                description: 'Exemplary cross-departmental alignment and critical incident resolution.'
+            },
+            {
+                employeeId: createdEmployees[5]._id,
+                employeeName: createdEmployees[5].name,
+                department: createdEmployees[5].department,
+                awardName: 'Best Employee of the Year',
+                type: 'best_employee',
+                amount: 1400,
+                date: new Date('2026-07-15'),
+                presentedBy: 'Chief Financial Officer',
+                certificate: 'CERT-2026-006',
+                description: 'Flawless audit execution and departmental cost-efficiency modeling.'
+            },
+            {
+                employeeId: createdEmployees[6]._id,
+                employeeName: createdEmployees[6].name,
+                department: createdEmployees[6].department,
+                awardName: 'Innovation in AI Automation',
+                type: 'innovation',
+                amount: 1100,
+                date: new Date('2026-09-12'),
+                presentedBy: 'Chief Technology Officer',
+                certificate: 'CERT-2026-007',
+                description: 'Built an internal AI agent toolchain accelerating bug triage by 50%.'
+            },
+            {
+                employeeId: createdEmployees[7]._id,
+                employeeName: createdEmployees[7].name,
+                department: createdEmployees[7].department,
+                awardName: 'Creative Content Excellence',
+                type: 'best_employee',
+                amount: 850,
+                date: new Date('2026-09-28'),
+                presentedBy: 'Marketing Director',
+                certificate: 'CERT-2026-008',
+                description: 'Produced viral product showcase garnering 250,000 organic impressions.'
             }
         ];
 
-        await Award.insertMany(awardsData);
-        console.log(`   ✅ Seeded ${awardsData.length} awards`);
+        const createdAwards = await Award.insertMany(awardsData);
+        console.log(`   ✅ Seeded ${createdAwards.length} awards`);
 
         // 8. Seed Loans
         console.log('💰 Seeding Loans...');
@@ -699,6 +769,285 @@ const seedData = async () => {
         ];
         await AttendanceReport.insertMany(attendanceReportsData);
         console.log(`   ✅ Seeded ${attendanceReportsData.length} saved attendance reports`);
+
+        // 13. Seed Award Reports (Exactly 6 Reports)
+        console.log('🏆 Seeding 6 Award Reports in AwardReport collection...');
+        await AwardReport.deleteMany({});
+
+        const getMonthName = (m) => new Date(2026, m - 1, 1).toLocaleString('default', { month: 'short' });
+        const getQuarter = (m) => (m <= 3 ? 'Q1' : m <= 6 ? 'Q2' : m <= 9 ? 'Q3' : 'Q4');
+
+        const buildAwardReport = (title, reportType, startDate, endDate, departmentFilter, awardTypeFilter, notes) => {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+
+            const matchedAwards = createdAwards.filter(a => {
+                const aDate = new Date(a.date);
+                if (aDate < start || aDate > end) return false;
+                if (departmentFilter && departmentFilter !== 'all' && a.department !== departmentFilter) return false;
+                if (awardTypeFilter && awardTypeFilter !== 'all' && a.type !== awardTypeFilter) return false;
+                return true;
+            });
+
+            const summary = {
+                totalAwards: matchedAwards.length,
+                totalEmployeesAwarded: 0,
+                totalAmount: 0,
+                averageAwardAmount: 0,
+                uniqueDepartments: 0,
+                topPerformer: null,
+                topDepartment: null,
+                awardsByType: {
+                    gascapitol: 0,
+                    coby_beach: 0,
+                    best_employee: 0,
+                    innovation: 0,
+                    leadership: 0,
+                    team_player: 0,
+                    other: 0
+                }
+            };
+
+            const deptMap = {};
+            const empAggMap = {};
+            const typeAggMap = {};
+            const monthlyAggMap = {};
+            const quarterlyAggMap = {};
+            const uniqueDeptSet = new Set();
+
+            const awardData = matchedAwards.map(a => {
+                const awardDate = new Date(a.date);
+                const year = awardDate.getFullYear();
+                const month = awardDate.getMonth() + 1;
+                const monthName = getMonthName(month);
+                const quarter = getQuarter(month);
+
+                summary.totalAmount += (a.amount || 0);
+                if (summary.awardsByType[a.type] !== undefined) {
+                    summary.awardsByType[a.type]++;
+                } else {
+                    summary.awardsByType.other++;
+                }
+
+                uniqueDeptSet.add(a.department);
+                if (!deptMap[a.department]) {
+                    deptMap[a.department] = {
+                        department: a.department,
+                        totalAwards: 0,
+                        totalAmount: 0,
+                        uniqueEmployees: 0,
+                        empIds: new Set(),
+                        topAwardType: a.type
+                    };
+                }
+                deptMap[a.department].totalAwards++;
+                deptMap[a.department].totalAmount += (a.amount || 0);
+                deptMap[a.department].empIds.add(String(a.employeeId));
+
+                const empIdStr = String(a.employeeId);
+                if (!empAggMap[empIdStr]) {
+                    empAggMap[empIdStr] = {
+                        employeeId: a.employeeId,
+                        employeeCode: `EMP-${String(a.employeeId).slice(-4).toUpperCase()}`,
+                        employeeName: a.employeeName,
+                        department: a.department,
+                        totalAwards: 0,
+                        totalAmount: 0,
+                        awardTypes: new Set(),
+                        lastAwardDate: a.date
+                    };
+                }
+                empAggMap[empIdStr].totalAwards++;
+                empAggMap[empIdStr].totalAmount += (a.amount || 0);
+                empAggMap[empIdStr].awardTypes.add(a.type);
+                if (a.date > empAggMap[empIdStr].lastAwardDate) {
+                    empAggMap[empIdStr].lastAwardDate = a.date;
+                }
+
+                if (!typeAggMap[a.type]) {
+                    typeAggMap[a.type] = { count: 0, totalAmount: 0 };
+                }
+                typeAggMap[a.type].count++;
+                typeAggMap[a.type].totalAmount += (a.amount || 0);
+
+                const mKey = `${year}-${String(month).padStart(2, '0')}`;
+                if (!monthlyAggMap[mKey]) {
+                    monthlyAggMap[mKey] = {
+                        year,
+                        month,
+                        monthName,
+                        count: 0,
+                        totalAmount: 0
+                    };
+                }
+                monthlyAggMap[mKey].count++;
+                monthlyAggMap[mKey].totalAmount += (a.amount || 0);
+
+                const qKey = `${year}-${quarter}`;
+                if (!quarterlyAggMap[qKey]) {
+                    quarterlyAggMap[qKey] = {
+                        year,
+                        quarter,
+                        count: 0,
+                        totalAmount: 0
+                    };
+                }
+                quarterlyAggMap[qKey].count++;
+                quarterlyAggMap[qKey].totalAmount += (a.amount || 0);
+
+                return {
+                    awardId: a._id,
+                    employeeId: a.employeeId,
+                    employeeCode: `EMP-${String(a.employeeId).slice(-4).toUpperCase()}`,
+                    employeeName: a.employeeName,
+                    department: a.department,
+                    position: createdEmployees.find(e => String(e._id) === String(a.employeeId))?.position || 'Staff',
+                    awardName: a.awardName,
+                    awardType: a.type,
+                    awardDate: a.date,
+                    amount: a.amount,
+                    description: a.description,
+                    presentedBy: a.presentedBy,
+                    year,
+                    month,
+                    monthName,
+                    quarter
+                };
+            });
+
+            summary.totalEmployeesAwarded = Object.keys(empAggMap).length;
+            summary.uniqueDepartments = uniqueDeptSet.size;
+            summary.averageAwardAmount = matchedAwards.length > 0
+                ? Math.round(summary.totalAmount / matchedAwards.length)
+                : 0;
+
+            const empList = Object.values(empAggMap);
+            if (empList.length > 0) {
+                summary.topPerformer = empList.sort((x, y) => y.totalAmount - x.totalAmount)[0].employeeName;
+            }
+
+            const deptList = Object.values(deptMap);
+            if (deptList.length > 0) {
+                summary.topDepartment = deptList.sort((x, y) => y.totalAwards - x.totalAwards)[0].department;
+            }
+
+            const departmentWiseData = Object.values(deptMap).map(d => ({
+                department: d.department,
+                totalAwards: d.totalAwards,
+                totalAmount: d.totalAmount,
+                uniqueEmployees: d.empIds.size,
+                averageAmount: Math.round(d.totalAmount / (d.totalAwards || 1)),
+                topAwardType: d.topAwardType
+            }));
+
+            const employeeWiseData = Object.values(empAggMap).map(e => ({
+                employeeId: e.employeeId,
+                employeeCode: e.employeeCode,
+                employeeName: e.employeeName,
+                department: e.department,
+                totalAwards: e.totalAwards,
+                totalAmount: e.totalAmount,
+                awardTypes: Array.from(e.awardTypes),
+                lastAwardDate: e.lastAwardDate
+            }));
+
+            const awardTypeWiseData = Object.entries(typeAggMap).map(([type, data]) => ({
+                awardType: type,
+                count: data.count,
+                totalAmount: data.totalAmount,
+                percentage: matchedAwards.length > 0 ? Math.round((data.count / matchedAwards.length) * 100) : 0
+            }));
+
+            const monthlyTrendData = Object.values(monthlyAggMap);
+            const quarterlyData = Object.values(quarterlyAggMap);
+            const topPerformersData = employeeWiseData.slice(0, 5);
+
+            return {
+                title,
+                reportType,
+                dateRange: { startDate: start, endDate: end },
+                department: departmentFilter || 'all',
+                employeeIds: matchedAwards.map(a => a.employeeId),
+                awardIds: matchedAwards.map(a => a._id),
+                filters: {
+                    awardType: awardTypeFilter || 'all',
+                    year: start.getFullYear(),
+                    month: start.getMonth() + 1
+                },
+                summary,
+                awardData,
+                departmentWiseData,
+                employeeWiseData,
+                awardTypeWiseData,
+                monthlyTrendData,
+                quarterlyData,
+                topPerformersData,
+                generatedBy: adminUser._id,
+                status: 'completed',
+                notes
+            };
+        };
+
+        const awardReportsData = [
+            buildAwardReport(
+                'Q1 2026 Corporate Recognition & Merit Report',
+                'summary',
+                '2026-01-01',
+                '2026-03-31',
+                'all',
+                'all',
+                'Executive corporate summary of Q1 achievements and top honor recipients.'
+            ),
+            buildAwardReport(
+                'Software Engineering Innovation & Quality Awards',
+                'department',
+                '2026-01-01',
+                '2026-09-30',
+                'Software Development',
+                'all',
+                'Technical department review covering cloud migrations, code quality, and AI automation.'
+            ),
+            buildAwardReport(
+                'Marketing & Brand Growth Honors Summary',
+                'department',
+                '2026-01-01',
+                '2026-09-30',
+                'Marketing',
+                'all',
+                'Marketing campaign leadership awards and organic expansion milestones.'
+            ),
+            buildAwardReport(
+                'Company-Wide Best Employee & Team Player Awards',
+                'category',
+                '2026-01-01',
+                '2026-10-06',
+                'all',
+                'best_employee',
+                'Evaluation of peer-nominated best employee and cultural excellence awards.'
+            ),
+            buildAwardReport(
+                'Monthly Performance & Innovation Awards - September 2026',
+                'monthly',
+                '2026-09-01',
+                '2026-09-30',
+                'all',
+                'all',
+                'Monthly high-impact contributors across technical and creative departments.'
+            ),
+            buildAwardReport(
+                'Comprehensive Annual Corporate Recognition Report 2026',
+                'yearly',
+                '2026-01-01',
+                '2026-12-31',
+                'all',
+                'all',
+                'Full calendar year enterprise recognition audit with financial disbursements and rankings.'
+            )
+        ];
+
+        await AwardReport.insertMany(awardReportsData);
+        console.log(`   ✅ Seeded ${awardReportsData.length} award reports in AwardReport collection`);
 
         console.log('\n🎉 ALL DATABASE SEEDING COMPLETED SUCCESSFULLY!');
         console.log('----------------------------------------------------');

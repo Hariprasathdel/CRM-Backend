@@ -365,19 +365,21 @@ const generateReport = async (req, res) => {
                     monthlyInstallment: l.monthlyInstallment
                 }))
             };
-        } else if (normType === 'performance') {
+        } else if (normType === 'performance' || normType === 'award' || normType === 'awards') {
             const awards = await Award.find().populate('employeeId', 'name department');
             const employees = await Employee.find();
             
             reportData = {
                 ...reportData,
                 totalAwards: awards.length,
-                topPerformer: awards[0]?.employeeId?.name || 'John Doe',
+                topPerformer: awards[0]?.employeeName || awards[0]?.employeeId?.name || 'John Doe',
+                totalDisbursement: awards.reduce((sum, a) => sum + (a.amount || 0), 0),
                 recentAwards: awards.slice(0, 10).map(a => ({
-                    employee: a.employeeId?.name || 'N/A',
-                    department: a.employeeId?.department || 'N/A',
+                    employee: a.employeeName || a.employeeId?.name || 'N/A',
+                    department: a.department || a.employeeId?.department || 'N/A',
                     awardName: a.awardName,
-                    points: a.points,
+                    type: a.type,
+                    amount: a.amount,
                     date: a.date
                 }))
             };
@@ -399,6 +401,8 @@ const generateReport = async (req, res) => {
         const typeLabels = {
             attendance: 'Employee Attendance Summary',
             performance: 'Department Performance Report',
+            award: 'Award & Recognition Report',
+            awards: 'Award & Recognition Report',
             leave: 'Leave Analysis Report',
             employee: 'Employee Directory & Stats Report',
             department: 'Department Operational Report',

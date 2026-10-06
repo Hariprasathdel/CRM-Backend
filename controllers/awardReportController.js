@@ -374,7 +374,7 @@ const generateAwardReport = async (req, res) => {
             monthlyTrendData,
             quarterlyData,
             topPerformersData,
-            generatedBy: req.user.id,
+            generatedBy: req.user ? (req.user._id || req.user.id) : undefined,
             status: 'completed',
             notes
         });

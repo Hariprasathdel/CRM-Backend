@@ -1,4 +1,12 @@
 const mongoose = require('mongoose');
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Ensure environment variables are loaded
+if (!process.env.MONGODB_URI) {
+  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+  dotenv.config(); // fallback to current working directory
+}
 
 let isConnected = false;
 

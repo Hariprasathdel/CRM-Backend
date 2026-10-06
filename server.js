@@ -28,6 +28,7 @@ app.use('/api/employees', require('./routes/employeeRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
 app.use('/api/leaves', require('./routes/leaveRoutes'));
 app.use('/api/awards', require('./routes/awardRoutes'));
+app.use('/api/rewards', require('./routes/awardRoutes'));
 app.use('/api/departments', require('./routes/departmentRoutes'));
 app.use('/api/loans', require('./routes/loanRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));

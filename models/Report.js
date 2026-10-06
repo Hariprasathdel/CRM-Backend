@@ -14,7 +14,7 @@ const reportSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['attendance', 'employee', 'leave', 'project', 'financial', 'custom', 'performance', 'department', 'recruitment', 'payroll', 'Attendance', 'Performance', 'Leave', 'Employee', 'Department', 'Financial', 'Project'],
+        enum: ['attendance', 'employee', 'leave', 'project', 'financial', 'custom', 'performance', 'department', 'recruitment', 'payroll', 'award', 'awards', 'Attendance', 'Performance', 'Leave', 'Employee', 'Department', 'Financial', 'Project', 'Award', 'Awards'],
         required: [true, 'Please provide report type']
     },
     data: {
