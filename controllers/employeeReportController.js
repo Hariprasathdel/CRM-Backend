@@ -1,4 +1,4 @@
-const EmployeeReport = require('../models/employeeReport');
+const EmployeeReport = require('../models/EmployeeReport');
 const Employee = require('../models/Employee');
 const Department = require('../models/Department');
 const mongoose = require('mongoose');
@@ -510,6 +510,7 @@ const getEmployeeSummary = async (req, res) => {
         });
 
         summary.departments = departmentSet.size;
+        summary.total = summary.totalEmployees;
         summary.averageSalary = salaryCount > 0
             ? Math.round(totalSalary / salaryCount)
             : 0;
@@ -600,7 +601,11 @@ const getDepartmentDistribution = async (req, res) => {
             {
                 $group: {
                     _id: '$department',
-                    count: { $sum: 1 }
+                    count: { $sum: 1 },
+                    active: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+                    inactive: { $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] } },
+                    onLeave: { $sum: { $cond: [{ $in: ['$status', ['on_leave', 'leave']] }, 1, 0] } },
+                    avgSalary: { $avg: '$salary' }
                 }
             },
             { $sort: { count: -1 } }
@@ -609,8 +614,14 @@ const getDepartmentDistribution = async (req, res) => {
         const total = distribution.reduce((sum, d) => sum + d.count, 0);
 
         const data = distribution.map(d => ({
-            department: d._id,
+            department: d._id || 'General',
+            departmentName: d._id || 'General',
+            total: d.count,
             count: d.count,
+            active: d.active,
+            inactive: d.inactive,
+            onLeave: d.onLeave,
+            avgSalary: Math.round(d.avgSalary || 70000),
             percentage: total > 0
                 ? Math.round((d.count / total) * 100 * 100) / 100
                 : 0

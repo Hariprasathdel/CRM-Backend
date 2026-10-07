@@ -18,23 +18,22 @@ const getSavedReports = async (req, res) => {
             tags,
             sortBy = 'createdAt',
             sortOrder = 'desc',
-            view = 'mine' // 'mine', 'shared', 'all'
+            view = 'all' // 'mine', 'shared', 'all'
         } = req.query;
 
         const query = {};
 
         // Filter based on view
-        if (view === 'mine') {
+        if (view === 'mine' && req.user?.id) {
             query.createdBy = req.user.id;
-        } else if (view === 'shared') {
+        } else if (view === 'shared' && req.user?.id) {
             query.createdBy = { $ne: req.user.id };
             query.$or = [
                 { 'sharedWith.userId': req.user.id },
                 { sharedWithRoles: req.user.role },
                 { visibility: 'public' }
             ];
-        } else {
-            // 'all' - user can see own or shared
+        } else if (view !== 'all' && req.user && !['admin', 'super_admin'].includes(req.user.role)) {
             query.$or = [
                 { createdBy: req.user.id },
                 { 'sharedWith.userId': req.user.id },

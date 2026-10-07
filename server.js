@@ -33,6 +33,8 @@ app.use('/api/departments', require('./routes/departmentRoutes'));
 app.use('/api/loans', require('./routes/loanRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));
 app.use('/api/recruitments', require('./routes/recruitmentRoutes'));
+app.use('/api/recruitment', require('./routes/recruitmentRoutes'));
+app.use('/api/recruitment/applicants', require('./routes/applicantRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/employee-reports', require('./routes/employeeReportRoutes')); 
 app.use('/api/payslips', require('./routes/payslipRoutes'));
