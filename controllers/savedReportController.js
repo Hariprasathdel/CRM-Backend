@@ -452,7 +452,31 @@ const shareReport = async (req, res) => {
 // @access  Private
 const recordReportRun = async (req, res) => {
     try {
-        const { rowCount, executionTimeMs, status = 'success', errorMessage } = req.body;
+        // Normalize an empty run request before reading optional audit fields.
+        const { rowCount, executionTimeMs, status = 'success', errorMessage } = req.body || {};
+
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid saved report ID'
+            });
+        }
+
+        if (!['success', 'failed'].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Status must be either success or failed'
+            });
+        }
+
+        for (const [field, value] of Object.entries({ rowCount, executionTimeMs })) {
+            if (value !== undefined && (!Number.isFinite(Number(value)) || Number(value) < 0)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `${field} must be a non-negative number`
+                });
+            }
+        }
 
         const report = await SavedReport.findById(req.params.id);
 
@@ -463,18 +487,20 @@ const recordReportRun = async (req, res) => {
             });
         }
 
-        report.usageCount += 1;
+        // Older or manually seeded documents may have missing/null audit fields.
+        report.usageCount = (Number(report.usageCount) || 0) + 1;
+        report.runHistory = Array.isArray(report.runHistory) ? report.runHistory : [];
         report.lastUsedAt = new Date();
         report.lastRunAt = new Date();
 
         report.runHistory.push({
             runAt: new Date(),
-            runBy: req.user.id,
-            runByName: req.user.name,
-            rowCount,
-            executionTimeMs,
+            runBy: req.user?._id || req.user?.id,
+            runByName: req.user?.name || 'Administrator',
+            ...(rowCount !== undefined && { rowCount: Number(rowCount) }),
+            ...(executionTimeMs !== undefined && { executionTimeMs: Number(executionTimeMs) }),
             status,
-            errorMessage
+            ...(errorMessage !== undefined && { errorMessage: String(errorMessage) })
         });
 
         // Keep only last 50 run history entries
