@@ -227,6 +227,5 @@ taskSchema.index({ assignedTo: 1 });
 taskSchema.index({ project: 1 });
 taskSchema.index({ dueDate: 1 });
 taskSchema.index({ createdAt: -1 });
-taskSchema.index({ taskCode: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);
