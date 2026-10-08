@@ -205,7 +205,7 @@ taskSchema.virtual('checklistProgress').get(function() {
 });
 
 // Pre-save: generate task code if missing
-taskSchema.pre('save', function(next) {
+taskSchema.pre('save', function() {
     this.updatedAt = Date.now();
     if (!this.taskCode) {
         const year = new Date().getFullYear().toString().slice(-2);
@@ -217,7 +217,6 @@ taskSchema.pre('save', function(next) {
         this.completedDate = new Date();
         this.progress = 100;
     }
-    next();
 });
 
 // Indexes

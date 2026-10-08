@@ -223,7 +223,7 @@ jobPostingSchema.virtual('applicationRate').get(function() {
 });
 
 // Pre-save: generate job code if missing
-jobPostingSchema.pre('save', function(next) {
+jobPostingSchema.pre('save', function() {
     if (!this.jobCode) {
         const year = new Date().getFullYear().toString().slice(-2);
         const deptCode = (this.department || 'GEN').substring(0, 3).toUpperCase();
@@ -234,12 +234,10 @@ jobPostingSchema.pre('save', function(next) {
     if (this.closingDate && new Date() > this.closingDate && this.status === 'open') {
         this.status = 'closed';
     }
-    next();
 });
 
 // Indexes
 jobPostingSchema.index({ jobTitle: 'text', description: 'text', skills: 'text' });
-jobPostingSchema.index({ jobCode: 1 });
 jobPostingSchema.index({ department: 1 });
 jobPostingSchema.index({ status: 1 });
 jobPostingSchema.index({ employmentType: 1 });

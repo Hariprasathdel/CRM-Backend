@@ -23,6 +23,13 @@ router.get('/', protect, getRecruitments);
 router.get('/stats', protect, getRecruitmentStats);
 router.get('/statistics', protect, getRecruitmentStats);
 
+// Sub-routes for applicants
+router.use('/applicants', require('./applicantRoutes'));
+router.get('/jobs/:id/applicants', protect, (req, res, next) => {
+    req.params.jobId = req.params.id;
+    return require('../controllers/applicantController').getApplicantsByJob(req, res, next);
+});
+
 // @route   GET /api/recruitment/jobs
 router.get('/jobs', protect, getRecruitments);
 router.get('/jobs/:id', protect, getRecruitmentById);

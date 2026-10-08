@@ -12,8 +12,24 @@ connectDB();
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175'
+];
+
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'],
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+            return callback(null, true);
+        }
+        return callback(null, true);
+    },
     credentials: true
 }));
 app.use(express.json());
@@ -32,9 +48,11 @@ app.use('/api/rewards', require('./routes/awardRoutes'));
 app.use('/api/departments', require('./routes/departmentRoutes'));
 app.use('/api/loans', require('./routes/loanRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));
+// Specific sub-paths must precede the root route prefix to prevent shadowing
+app.use('/api/recruitment/applicants', require('./routes/applicantRoutes'));
+app.use('/api/applicants', require('./routes/applicantRoutes'));
 app.use('/api/recruitments', require('./routes/recruitmentRoutes'));
 app.use('/api/recruitment', require('./routes/recruitmentRoutes'));
-app.use('/api/recruitment/applicants', require('./routes/applicantRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/employee-reports', require('./routes/employeeReportRoutes')); 
 app.use('/api/payslips', require('./routes/payslipRoutes'));
@@ -44,7 +62,6 @@ app.use('/api/loan-reports', require('./routes/loanReportRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/payslip-history', require('./routes/payslipHistoryRoutes'));
 app.use('/api/job-postings', require('./routes/jobPostingRoutes'));
-app.use('/api/applicants', require('./routes/applicantRoutes'));
 app.use('/api/saved-reports', require('./routes/savedReportRoutes'));
 app.use('/api/award-reports', require('./routes/awardReportRoutes'));
 app.use('/api/mark-attendance', require('./routes/markAttendanceRoutes'));

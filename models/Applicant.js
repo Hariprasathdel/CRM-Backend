@@ -295,7 +295,7 @@ applicantSchema.virtual('daysSinceApplied').get(function() {
 });
 
 // Pre-save: generate applicant code
-applicantSchema.pre('save', function(next) {
+applicantSchema.pre('save', function() {
     if (!this.applicantCode) {
         const year = new Date().getFullYear().toString().slice(-2);
         const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
@@ -319,12 +319,10 @@ applicantSchema.pre('save', function(next) {
         };
         this.stage = statusToStage[this.status] || this.stage;
     }
-    next();
 });
 
 // Indexes
 applicantSchema.index({ firstName: 'text', lastName: 'text', email: 'text', skills: 'text' });
-applicantSchema.index({ applicantCode: 1 });
 applicantSchema.index({ jobId: 1 });
 applicantSchema.index({ email: 1 });
 applicantSchema.index({ phone: 1 });

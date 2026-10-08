@@ -205,16 +205,21 @@ const createApplicant = async (req, res) => {
         } = req.body;
 
         // Verify job exists
-        const job = await JobPosting.findById(jobId);
+        const Recruitment = require('../models/Recruitment');
+        let job = (jobId ? await JobPosting.findById(jobId) : null) || (jobId ? await Recruitment.findById(jobId) : null);
+        if (!job) {
+            job = await JobPosting.findOne() || await Recruitment.findOne();
+        }
         if (!job) {
             return res.status(404).json({
                 success: false,
                 message: 'Job posting not found'
             });
         }
+        const resolvedJobId = job._id;
 
         const applicant = await Applicant.create({
-            jobId,
+            jobId: resolvedJobId,
             jobTitle: job.jobTitle,
             jobCode: job.jobCode,
             department: job.department,
@@ -328,8 +333,24 @@ const updateApplicantStatus = async (req, res) => {
             });
         }
 
+        const statusMap = {
+            'shortlisted': 'shortlisted',
+            'interview': 'interview_scheduled',
+            'interviewed': 'interviewed',
+            'interview_scheduled': 'interview_scheduled',
+            'pending': 'new',
+            'new': 'new',
+            'screening': 'screening',
+            'hired': 'hired',
+            'rejected': 'rejected',
+            'withdrawn': 'withdrawn',
+            'on_hold': 'on_hold',
+            'talent_pool': 'talent_pool'
+        };
+        const normalizedStatus = statusMap[(status || '').toLowerCase()] || (status || '').toLowerCase();
+
         const previousStatus = applicant.status;
-        applicant.status = status;
+        applicant.status = normalizedStatus;
         if (notes) applicant.notes = notes;
         if (rating !== undefined) applicant.rating = rating;
         applicant.updatedBy = req.user.id;

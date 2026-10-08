@@ -258,27 +258,26 @@ savedReportSchema.virtual('categoryLabel').get(function() {
 });
 
 // Pre-save middleware
-savedReportSchema.pre('save', function(next) {
+savedReportSchema.pre('save', function() {
     // Auto-compute next run time if schedule enabled
     if (this.schedule && this.schedule.enabled && this.schedule.frequency) {
-        const next = new Date();
+        const nextDate = new Date();
         switch (this.schedule.frequency) {
             case 'daily':
-                next.setDate(next.getDate() + 1);
+                nextDate.setDate(nextDate.getDate() + 1);
                 break;
             case 'weekly':
-                next.setDate(next.getDate() + 7);
+                nextDate.setDate(nextDate.getDate() + 7);
                 break;
             case 'monthly':
-                next.setMonth(next.getMonth() + 1);
+                nextDate.setMonth(nextDate.getMonth() + 1);
                 break;
             case 'quarterly':
-                next.setMonth(next.getMonth() + 3);
+                nextDate.setMonth(nextDate.getMonth() + 3);
                 break;
         }
-        this.schedule.nextRunAt = next;
+        this.schedule.nextRunAt = nextDate;
     }
-    next();
 });
 
 // Indexes

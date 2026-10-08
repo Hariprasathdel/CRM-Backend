@@ -52,8 +52,15 @@ router.post(
 // @route   PUT /api/applicants/:id
 router.put('/:id', protect, updateApplicant);
 
-// @route   PATCH /api/applicants/:id/status
+// @route   PATCH /api/applicants/:id/status or PUT /api/applicants/:id/status
 router.patch(
+    '/:id/status',
+    protect,
+    [body('status').notEmpty().withMessage('Status is required')],
+    validateRequest,
+    updateApplicantStatus
+);
+router.put(
     '/:id/status',
     protect,
     [body('status').notEmpty().withMessage('Status is required')],
