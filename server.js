@@ -65,7 +65,7 @@ app.use('/api/job-postings', require('./routes/jobPostingRoutes'));
 app.use('/api/saved-reports', require('./routes/savedReportRoutes'));
 app.use('/api/award-reports', require('./routes/awardReportRoutes'));
 app.use('/api/mark-attendance', require('./routes/markAttendanceRoutes'));
-
+app.use('/api/leave-balances', require('./routes/leaveBalanceRoutes'));
 // Health check routes
 const healthHandler = (req, res) => {
     const mongoose = require('mongoose');
