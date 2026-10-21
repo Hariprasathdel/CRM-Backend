@@ -163,6 +163,27 @@ const runTests = async () => {
       `Status: ${genReports.status}, Reports count: ${genReports.body.data?.length}`
     );
 
+    // 22. Leave Balances List from MongoDB (/api/leave-balances)
+    const leaveBalances = await request('GET', '/api/leave-balances?year=2026', null, token);
+    assertTest('Leave Balances (10 records from MongoDB) (/api/leave-balances)', 
+      leaveBalances.status === 200 && Array.isArray(leaveBalances.body.data) && leaveBalances.body.data.length >= 10,
+      `Status: ${leaveBalances.status}, Count: ${leaveBalances.body.data?.length}`
+    );
+
+    // 23. Leave Balances Stats
+    const leaveStats = await request('GET', '/api/leave-balances/stats?year=2026', null, token);
+    assertTest('Leave Balances Stats (/api/leave-balances/stats)', 
+      leaveStats.status === 200 && leaveStats.body.data?.totalEmployees >= 10,
+      `Status: ${leaveStats.status}, Total: ${leaveStats.body.data?.totalEmployees}`
+    );
+
+    // 24. Leave Balances Department Summary
+    const leaveDept = await request('GET', '/api/leave-balances/department-summary?year=2026', null, token);
+    assertTest('Leave Balances Department Summary (/api/leave-balances/department-summary)', 
+      leaveDept.status === 200 && Array.isArray(leaveDept.body.data) && leaveDept.body.data.length > 0,
+      `Status: ${leaveDept.status}, Depts: ${leaveDept.body.data?.length}`
+    );
+
     console.log(`\n📊 Test Summary: ${passCount} Passed, ${failCount} Failed.`);
     if (failCount > 0) {
       process.exitCode = 1;

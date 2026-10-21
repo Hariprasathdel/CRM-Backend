@@ -5,7 +5,8 @@ const Leave = require('../models/Leave');
 // Default leave allocation
 const DEFAULT_ALLOCATION = {
     annual: 20,
-    sick: 10,
+    sick: 12,
+    casual: 8,
     personal: 5,
     emergency: 3,
     maternity: 90,
@@ -20,7 +21,7 @@ const getLeaveBalances = async (req, res) => {
     try {
         const {
             page = 1,
-            limit = 20,
+            limit = 50,
             year,
             department,
             employeeId,
@@ -30,17 +31,20 @@ const getLeaveBalances = async (req, res) => {
 
         const query = { status };
         if (year) query.year = parseInt(year);
-        if (department) query.department = department;
+        if (department && department !== 'all') query.department = department;
         if (employeeId) query.employeeId = employeeId;
-        if (search) {
+        if (search && search.trim()) {
+            const searchRegex = { $regex: search.trim(), $options: 'i' };
             query.$or = [
-                { employeeName: { $regex: search, $options: 'i' } },
-                { employeeCode: { $regex: search, $options: 'i' } }
+                { employeeName: searchRegex },
+                { employeeCode: searchRegex },
+                { department: searchRegex },
+                { position: searchRegex }
             ];
         }
 
         const balances = await LeaveBalance.find(query)
-            .populate('employeeId', 'name email department position profileImage status')
+            .populate('employeeId', 'name email department position profileImage status initials')
             .skip((page - 1) * limit)
             .limit(parseInt(limit))
             .sort({ employeeName: 1 });
@@ -189,6 +193,8 @@ const createOrUpdateBalance = async (req, res) => {
                 employeeName: employee.name,
                 employeeCode: `EMP-${String(employee._id).slice(-6).toUpperCase()}`,
                 department: employee.department,
+                position: employee.position || '',
+                avatar: employee.initials || employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
                 year,
                 balances: initialBalances,
                 createdBy: req.user.id
@@ -540,6 +546,8 @@ const createBalanceForEmployee = async (employee, year, userId) => {
         employeeName: employee.name,
         employeeCode: `EMP-${String(employee._id).slice(-6).toUpperCase()}`,
         department: employee.department,
+        position: employee.position || '',
+        avatar: employee.initials || employee.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
         year,
         balances: initialBalances,
         createdBy: userId

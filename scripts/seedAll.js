@@ -15,6 +15,7 @@ const Recruitment = require('../models/Recruitment');
 const Report = require('../models/Report');
 const AttendanceReport = require('../models/AttendanceReport');
 const AwardReport = require('../models/AwardReport');
+const LeaveBalance = require('../models/LeaveBalance');
 
 const seedData = async () => {
     try {
@@ -223,6 +224,36 @@ const seedData = async () => {
                 projects: ['Q3 Global Brand Campaign'],
                 performance: 'good',
                 joinDate: new Date('2024-01-10')
+            },
+            {
+                name: 'Priya Patel',
+                email: 'priya.patel@example.com',
+                phone: '+1 912 345 6789',
+                department: 'Human Resources',
+                position: 'Talent Acquisition Specialist',
+                status: 'active',
+                salary: 68000,
+                address: '101 Cambridge Blvd, Boston, MA',
+                emergencyContact: '+1 912 345 6780',
+                skills: ['Recruitment', 'Interviewing', 'Onboarding', 'HRIS'],
+                projects: ['2026 Tech Talent Drive'],
+                performance: 'excellent',
+                joinDate: new Date('2023-05-15')
+            },
+            {
+                name: 'Carlos Rodriguez',
+                email: 'carlos.rodriguez@example.com',
+                phone: '+1 923 456 7890',
+                department: 'Finance',
+                position: 'Senior Payroll Specialist',
+                status: 'active',
+                salary: 76000,
+                address: '404 Financial Plaza, Chicago, IL',
+                emergencyContact: '+1 923 456 7891',
+                skills: ['Payroll Automation', 'Tax Filing', 'SAP', 'Excel'],
+                projects: ['Automated Payroll Integration'],
+                performance: 'good',
+                joinDate: new Date('2022-08-20')
             }
         ];
 
@@ -337,6 +368,272 @@ const seedData = async () => {
 
         await Leave.insertMany(leavesData);
         console.log(`   ✅ Seeded ${leavesData.length} leave requests`);
+
+        // 5.1 Seed Leave Balances (10 records for 10 employees in MongoDB)
+        console.log('⚖️ Seeding Leave Balances (10 Employee Records)...');
+        await LeaveBalance.deleteMany({});
+        
+        const leaveBalancesData = [
+            // 1. John Doe (Software Development - Lead Software Engineer)
+            {
+                employeeId: createdEmployees[0]._id,
+                employeeName: createdEmployees[0].name,
+                employeeCode: 'EMP001',
+                department: createdEmployees[0].department,
+                position: createdEmployees[0].position,
+                avatar: 'JD',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 5,  pending: 2, carriedForward: 2, available: 15, remaining: 15 },
+                    sick:      { total: 12, used: 2,  pending: 0, carriedForward: 0, available: 10, remaining: 10 },
+                    casual:    { total: 8,  used: 3,  pending: 1, carriedForward: 0, available: 4,  remaining: 4  },
+                    personal:  { total: 5,  used: 1,  pending: 0, carriedForward: 0, available: 4,  remaining: 4  },
+                    emergency: { total: 3,  used: 0,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    maternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    paternity: { total: 10, used: 0,  pending: 0, carriedForward: 0, available: 10, remaining: 10 },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'annual', days: 3, startDate: new Date('2026-01-12'), endDate: new Date('2026-01-14'), status: 'approved', action: 'used', notes: 'Winter family vacation', date: new Date('2026-01-14') },
+                    { leaveType: 'sick', days: 2, startDate: new Date('2026-02-09'), endDate: new Date('2026-02-10'), status: 'approved', action: 'used', notes: 'Seasonal flu recovery', date: new Date('2026-02-10') },
+                    { leaveType: 'annual', days: 2, startDate: new Date('2026-03-20'), endDate: new Date('2026-03-21'), status: 'approved', action: 'used', notes: 'Personal trip', date: new Date('2026-03-21') },
+                    { leaveType: 'casual', days: 1, startDate: new Date('2026-04-10'), endDate: new Date('2026-04-10'), status: 'pending', action: 'pending', notes: 'Family event attendance', date: new Date('2026-04-08') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 2. Jane Smith (Marketing - Marketing Director)
+            {
+                employeeId: createdEmployees[1]._id,
+                employeeName: createdEmployees[1].name,
+                employeeCode: 'EMP002',
+                department: createdEmployees[1].department,
+                position: createdEmployees[1].position,
+                avatar: 'JS',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 8,  pending: 3, carriedForward: 0, available: 9,  remaining: 9  },
+                    sick:      { total: 12, used: 4,  pending: 0, carriedForward: 0, available: 8,  remaining: 8  },
+                    casual:    { total: 8,  used: 2,  pending: 0, carriedForward: 0, available: 6,  remaining: 6  },
+                    personal:  { total: 5,  used: 2,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    emergency: { total: 3,  used: 1,  pending: 0, carriedForward: 0, available: 2,  remaining: 2  },
+                    maternity: { total: 90, used: 45, pending: 0, carriedForward: 0, available: 45, remaining: 45 },
+                    paternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'maternity', days: 45, startDate: new Date('2026-01-05'), endDate: new Date('2026-02-18'), status: 'approved', action: 'used', notes: 'Maternity leave - Phase 1', date: new Date('2026-02-18') },
+                    { leaveType: 'annual', days: 5, startDate: new Date('2026-03-02'), endDate: new Date('2026-03-06'), status: 'approved', action: 'used', notes: 'Post-maternity transition', date: new Date('2026-03-06') },
+                    { leaveType: 'sick', days: 4, startDate: new Date('2026-04-01'), endDate: new Date('2026-04-04'), status: 'approved', action: 'used', notes: 'Pediatric care appointments', date: new Date('2026-04-04') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 3. Robert Brown (Software Development - Senior Frontend Developer)
+            {
+                employeeId: createdEmployees[2]._id,
+                employeeName: createdEmployees[2].name,
+                employeeCode: 'EMP003',
+                department: createdEmployees[2].department,
+                position: createdEmployees[2].position,
+                avatar: 'RB',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 2,  pending: 1, carriedForward: 1, available: 18, remaining: 18 },
+                    sick:      { total: 12, used: 0,  pending: 0, carriedForward: 0, available: 12, remaining: 12 },
+                    casual:    { total: 8,  used: 2,  pending: 0, carriedForward: 0, available: 6,  remaining: 6  },
+                    personal:  { total: 5,  used: 0,  pending: 0, carriedForward: 0, available: 5,  remaining: 5  },
+                    emergency: { total: 3,  used: 0,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    maternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    paternity: { total: 10, used: 0,  pending: 0, carriedForward: 0, available: 10, remaining: 10 },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'annual', days: 2, startDate: new Date('2026-02-16'), endDate: new Date('2026-02-17'), status: 'approved', action: 'used', notes: 'Tech conference travel', date: new Date('2026-02-17') },
+                    { leaveType: 'casual', days: 2, startDate: new Date('2026-03-12'), endDate: new Date('2026-03-13'), status: 'approved', action: 'used', notes: 'Home relocation', date: new Date('2026-03-13') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 4. Emily Davis (Human Resources - HR Manager)
+            {
+                employeeId: createdEmployees[3]._id,
+                employeeName: createdEmployees[3].name,
+                employeeCode: 'EMP004',
+                department: createdEmployees[3].department,
+                position: createdEmployees[3].position,
+                avatar: 'ED',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 6,  pending: 0, carriedForward: 0, available: 14, remaining: 14 },
+                    sick:      { total: 12, used: 2,  pending: 1, carriedForward: 0, available: 9,  remaining: 9  },
+                    casual:    { total: 8,  used: 3,  pending: 0, carriedForward: 0, available: 5,  remaining: 5  },
+                    personal:  { total: 5,  used: 1,  pending: 0, carriedForward: 0, available: 4,  remaining: 4  },
+                    emergency: { total: 3,  used: 0,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    maternity: { total: 90, used: 30, pending: 0, carriedForward: 0, available: 60, remaining: 60 },
+                    paternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'maternity', days: 30, startDate: new Date('2026-01-15'), endDate: new Date('2026-02-14'), status: 'approved', action: 'used', notes: 'Maternity leave - partial', date: new Date('2026-02-14') },
+                    { leaveType: 'annual', days: 6, startDate: new Date('2026-03-16'), endDate: new Date('2026-03-21'), status: 'approved', action: 'used', notes: 'Family vacation break', date: new Date('2026-03-21') },
+                    { leaveType: 'sick', days: 2, startDate: new Date('2026-04-05'), endDate: new Date('2026-04-06'), status: 'approved', action: 'used', notes: 'Dental surgery recovery', date: new Date('2026-04-06') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 5. Michael Green (Operations - Operations Supervisor)
+            {
+                employeeId: createdEmployees[4]._id,
+                employeeName: createdEmployees[4].name,
+                employeeCode: 'EMP005',
+                department: createdEmployees[4].department,
+                position: createdEmployees[4].position,
+                avatar: 'MG',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 12, pending: 4, carriedForward: 0, available: 4,  remaining: 4  },
+                    sick:      { total: 12, used: 5,  pending: 0, carriedForward: 0, available: 7,  remaining: 7  },
+                    casual:    { total: 8,  used: 4,  pending: 0, carriedForward: 0, available: 4,  remaining: 4  },
+                    personal:  { total: 5,  used: 2,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    emergency: { total: 3,  used: 2,  pending: 0, carriedForward: 0, available: 1,  remaining: 1  },
+                    maternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    paternity: { total: 10, used: 5,  pending: 2, carriedForward: 0, available: 3,  remaining: 3  },
+                    unpaid:    { total: 30, used: 2,  pending: 0, carriedForward: 0, available: 28, remaining: 28 }
+                },
+                usageHistory: [
+                    { leaveType: 'paternity', days: 5, startDate: new Date('2026-02-02'), endDate: new Date('2026-02-06'), status: 'approved', action: 'used', notes: 'Newborn child leave', date: new Date('2026-02-06') },
+                    { leaveType: 'annual', days: 10, startDate: new Date('2026-03-01'), endDate: new Date('2026-03-10'), status: 'approved', action: 'used', notes: 'Annual family holiday break', date: new Date('2026-03-10') },
+                    { leaveType: 'emergency', days: 2, startDate: new Date('2026-04-12'), endDate: new Date('2026-04-13'), status: 'approved', action: 'used', notes: 'Home storm maintenance', date: new Date('2026-04-13') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 6. David Miller (Finance - Senior Financial Analyst)
+            {
+                employeeId: createdEmployees[5]._id,
+                employeeName: createdEmployees[5].name,
+                employeeCode: 'EMP006',
+                department: createdEmployees[5].department,
+                position: createdEmployees[5].position,
+                avatar: 'DM',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 4,  pending: 0, carriedForward: 3, available: 19, remaining: 19 },
+                    sick:      { total: 12, used: 1,  pending: 0, carriedForward: 0, available: 11, remaining: 11 },
+                    casual:    { total: 8,  used: 1,  pending: 0, carriedForward: 0, available: 7,  remaining: 7  },
+                    personal:  { total: 5,  used: 0,  pending: 0, carriedForward: 0, available: 5,  remaining: 5  },
+                    emergency: { total: 3,  used: 0,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    maternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    paternity: { total: 10, used: 0,  pending: 0, carriedForward: 0, available: 10, remaining: 10 },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'annual', days: 4, startDate: new Date('2026-01-20'), endDate: new Date('2026-01-23'), status: 'approved', action: 'used', notes: 'Post-audit relaxation', date: new Date('2026-01-23') },
+                    { leaveType: 'sick', days: 1, startDate: new Date('2026-03-05'), endDate: new Date('2026-03-05'), status: 'approved', action: 'used', notes: 'Headache & eye strain', date: new Date('2026-03-05') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 7. Sarah Williams (Software Development - Backend Developer)
+            {
+                employeeId: createdEmployees[6]._id,
+                employeeName: createdEmployees[6].name,
+                employeeCode: 'EMP007',
+                department: createdEmployees[6].department,
+                position: createdEmployees[6].position,
+                avatar: 'SW',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 16, pending: 4, carriedForward: 0, available: 0,  remaining: 0  },
+                    sick:      { total: 12, used: 7,  pending: 0, carriedForward: 0, available: 5,  remaining: 5  },
+                    casual:    { total: 8,  used: 5,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    personal:  { total: 5,  used: 3,  pending: 0, carriedForward: 0, available: 2,  remaining: 2  },
+                    emergency: { total: 3,  used: 1,  pending: 0, carriedForward: 0, available: 2,  remaining: 2  },
+                    maternity: { total: 90, used: 0,  pending: 0, carriedForward: 0, available: 90, remaining: 90 },
+                    paternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    unpaid:    { total: 30, used: 4,  pending: 2, carriedForward: 0, available: 24, remaining: 24 }
+                },
+                usageHistory: [
+                    { leaveType: 'annual', days: 10, startDate: new Date('2026-02-10'), endDate: new Date('2026-02-19'), status: 'approved', action: 'used', notes: 'European holiday trip', date: new Date('2026-02-19') },
+                    { leaveType: 'annual', days: 6, startDate: new Date('2026-04-01'), endDate: new Date('2026-04-06'), status: 'approved', action: 'used', notes: 'Spring festival break', date: new Date('2026-04-06') },
+                    { leaveType: 'sick', days: 5, startDate: new Date('2026-03-08'), endDate: new Date('2026-03-12'), status: 'approved', action: 'used', notes: 'Severe bronchitis', date: new Date('2026-03-12') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 8. Alex Turner (Marketing - Content Strategist)
+            {
+                employeeId: createdEmployees[7]._id,
+                employeeName: createdEmployees[7].name,
+                employeeCode: 'EMP008',
+                department: createdEmployees[7].department,
+                position: createdEmployees[7].position,
+                avatar: 'AT',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 7,  pending: 1, carriedForward: 0, available: 12, remaining: 12 },
+                    sick:      { total: 12, used: 3,  pending: 0, carriedForward: 0, available: 9,  remaining: 9  },
+                    casual:    { total: 8,  used: 2,  pending: 1, carriedForward: 0, available: 5,  remaining: 5  },
+                    personal:  { total: 5,  used: 1,  pending: 0, carriedForward: 0, available: 4,  remaining: 4  },
+                    emergency: { total: 3,  used: 0,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    maternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    paternity: { total: 10, used: 0,  pending: 0, carriedForward: 0, available: 10, remaining: 10 },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'annual', days: 5, startDate: new Date('2026-02-23'), endDate: new Date('2026-02-27'), status: 'approved', action: 'used', notes: 'Content summit retreat', date: new Date('2026-02-27') },
+                    { leaveType: 'sick', days: 3, startDate: new Date('2026-03-18'), endDate: new Date('2026-03-20'), status: 'approved', action: 'used', notes: 'Migraine episodes', date: new Date('2026-03-20') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 9. Priya Patel (Human Resources - Talent Acquisition Specialist)
+            {
+                employeeId: createdEmployees[8]._id,
+                employeeName: createdEmployees[8].name,
+                employeeCode: 'EMP009',
+                department: createdEmployees[8].department,
+                position: createdEmployees[8].position,
+                avatar: 'PP',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 3,  pending: 2, carriedForward: 0, available: 15, remaining: 15 },
+                    sick:      { total: 12, used: 1,  pending: 0, carriedForward: 0, available: 11, remaining: 11 },
+                    casual:    { total: 8,  used: 2,  pending: 0, carriedForward: 0, available: 6,  remaining: 6  },
+                    personal:  { total: 5,  used: 0,  pending: 0, carriedForward: 0, available: 5,  remaining: 5  },
+                    emergency: { total: 3,  used: 0,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    maternity: { total: 90, used: 0,  pending: 0, carriedForward: 0, available: 90, remaining: 90 },
+                    paternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'annual', days: 3, startDate: new Date('2026-03-11'), endDate: new Date('2026-03-13'), status: 'approved', action: 'used', notes: 'Family gathering', date: new Date('2026-03-13') },
+                    { leaveType: 'sick', days: 1, startDate: new Date('2026-04-02'), endDate: new Date('2026-04-02'), status: 'approved', action: 'used', notes: 'Medical checkup', date: new Date('2026-04-02') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            },
+            // 10. Carlos Rodriguez (Finance - Senior Payroll Specialist)
+            {
+                employeeId: createdEmployees[9]._id,
+                employeeName: createdEmployees[9].name,
+                employeeCode: 'EMP010',
+                department: createdEmployees[9].department,
+                position: createdEmployees[9].position,
+                avatar: 'CR',
+                year: 2026,
+                balances: {
+                    annual:    { total: 20, used: 9,  pending: 0, carriedForward: 2, available: 13, remaining: 13 },
+                    sick:      { total: 12, used: 2,  pending: 0, carriedForward: 0, available: 10, remaining: 10 },
+                    casual:    { total: 8,  used: 3,  pending: 0, carriedForward: 0, available: 5,  remaining: 5  },
+                    personal:  { total: 5,  used: 2,  pending: 0, carriedForward: 0, available: 3,  remaining: 3  },
+                    emergency: { total: 3,  used: 1,  pending: 0, carriedForward: 0, available: 2,  remaining: 2  },
+                    maternity: { total: 0,  used: 0,  pending: 0, carriedForward: 0, available: 0,  remaining: 0  },
+                    paternity: { total: 10, used: 8,  pending: 0, carriedForward: 0, available: 2,  remaining: 2  },
+                    unpaid:    { total: 30, used: 0,  pending: 0, carriedForward: 0, available: 30, remaining: 30 }
+                },
+                usageHistory: [
+                    { leaveType: 'paternity', days: 8, startDate: new Date('2026-01-26'), endDate: new Date('2026-02-04'), status: 'approved', action: 'used', notes: 'Paternity leave', date: new Date('2026-02-04') },
+                    { leaveType: 'annual', days: 5, startDate: new Date('2026-03-23'), endDate: new Date('2026-03-27'), status: 'approved', action: 'used', notes: 'Mid-term school break vacation', date: new Date('2026-03-27') }
+                ],
+                createdBy: adminUser ? adminUser._id : undefined
+            }
+        ];
+
+        await LeaveBalance.insertMany(leaveBalancesData);
+        console.log(`   ✅ Seeded ${leaveBalancesData.length} LeaveBalance records in MongoDB`);
 
         // 6. Seed Projects
         console.log('🚀 Seeding Projects...');
